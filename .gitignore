@@ -1,0 +1,10 @@
+target/
+dist/
+node_modules/
+.idea/
+.vscode/
+*.log
+temp/
+.trae/documents/
+.screenshots/
+server-api/settings.xml

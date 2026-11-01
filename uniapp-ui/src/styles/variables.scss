@@ -1,0 +1,36 @@
+/**
+ * 项目公共样式变量。
+ *
+ * 本文件通过 src/uni.scss 引入，随 uni-app 编译自动注入所有页面的 SCSS 上下文，
+ * 页面内可直接使用变量，无需手动 import。
+ */
+
+/* 主题色 */
+$app-color-primary: #2b7cff;
+$app-color-success: #19be6b;
+$app-color-warning: #ff9900;
+$app-color-error: #ed4014;
+
+/* 文字颜色 */
+$app-text-color: #1f2329;
+$app-text-color-secondary: #646a73;
+$app-text-color-placeholder: #8f959e;
+$app-text-color-inverse: #ffffff;
+
+/* 背景色 */
+$app-bg-color: #f7f8fa;
+$app-bg-color-page: #f2f3f5;
+
+/* 边框颜色 */
+$app-border-color: #e5e6eb;
+
+/* 圆角 */
+$app-border-radius-sm: 8rpx;
+$app-border-radius-base: 12rpx;
+$app-border-radius-lg: 20rpx;
+
+/* 间距 */
+$app-spacing-sm: 16rpx;
+$app-spacing-base: 24rpx;
+$app-spacing-lg: 32rpx;
+$app-spacing-xl: 48rpx;

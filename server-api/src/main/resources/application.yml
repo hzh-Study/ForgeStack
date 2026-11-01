@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: web-backend
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/base?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  servlet:
+    multipart:
+      max-request-size: 10000MB
+      max-file-size: 10024MB
+
+server:
+  port: 7245
+
+app:
+  name: 字母哥脚手架
+  version: 0.0.1
+  file:
+    upload-dir: external-resources
+    access-prefix: /files
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  jwt-secret-key: gdwsigb25387562178hwegrfuqwbrqwuvrwuqy
+  timeout: 6048000
+  active-timeout: -1
+  is-concurrent: true
+  is-share: true
+  is-read-body: false
+  is-read-cookie: false
+  is-read-header: true
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  type-aliases-package: com.example.web.module.*.entity
+  global-config:
+    db-config:
+      table-prefix:
+      update-strategy: ignored
+  configuration:
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+    map-underscore-to-camel-case: true

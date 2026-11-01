@@ -1,0 +1,18 @@
+/**
+ * 全局基础样式，只在 App.vue 中引入一次，所有页面共用。
+ *
+ * 只放页面通用背景、文本与边框的基础规则；
+ * 页面私有样式一律写在各自页面的 scoped 样式里，不写入本文件。
+ */
+
+page {
+  background-color: #f7f8fa;
+  font-size: 28rpx;
+  color: #1f2329;
+}
+
+/* 吸底元素安全区域适配：配合吸底按钮等固定元素使用 */
+.app-safe-area-bottom {
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}

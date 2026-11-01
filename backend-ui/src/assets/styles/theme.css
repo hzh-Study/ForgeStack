@@ -1,0 +1,20 @@
+:root {
+  --app-primary: #2563eb;
+  --app-primary-dark: #1d4ed8;
+  --app-primary-light-3: #60a5fa;
+  --app-primary-light-5: #93c5fd;
+  --app-primary-light-7: #bfdbfe;
+  --app-primary-light-8: #dbeafe;
+  --app-primary-light-9: #eff6ff;
+  --app-primary-plain: #f8fafc;
+
+  --el-color-primary: var(--app-primary);
+  --el-color-primary-dark-2: var(--app-primary-dark);
+  --el-color-primary-light-3: var(--app-primary-light-3);
+  --el-color-primary-light-5: var(--app-primary-light-5);
+  --el-color-primary-light-7: var(--app-primary-light-7);
+  --el-color-primary-light-8: var(--app-primary-light-8);
+  --el-color-primary-light-9: var(--app-primary-light-9);
+  --el-fill-color-light: var(--app-primary-plain);
+  --el-border-radius-base: 6px;
+}
