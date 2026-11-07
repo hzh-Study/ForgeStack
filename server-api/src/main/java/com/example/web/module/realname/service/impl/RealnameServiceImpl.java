@@ -158,6 +158,15 @@ public class RealnameServiceImpl implements RealnameService {
         return new PageResult<>(records, page.getTotal(), dto.getPageNum(), dto.getPageSize());
     }
 
+    @Override
+    public RealnameDetailVO getAdminRealnameDetail(Long id) {
+        Realname realname = realnameMapper.selectById(id);
+        if (realname == null) {
+            throw new BusinessException("实名记录不存在");
+        }
+        return toDetailVO(realname);
+    }
+
     private Realname getLatestPersonal(Long accountId) {
         List<Realname> list = realnameMapper.selectList(new LambdaQueryWrapper<Realname>()
                 .eq(Realname::getAccountId, accountId)

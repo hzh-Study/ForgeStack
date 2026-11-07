@@ -33,4 +33,12 @@ public interface RealnameService {
      * @return 实名分页数据
      */
     PageResult<RealnameListVO> pageRealnames(RealnameQueryDTO dto);
+
+    /**
+     * 管理员查看单条实名详情，可见完整证件号。
+     *
+     * @param id 实名记录 ID
+     * @return 实名详情
+     */
+    RealnameDetailVO getAdminRealnameDetail(Long id);
 }

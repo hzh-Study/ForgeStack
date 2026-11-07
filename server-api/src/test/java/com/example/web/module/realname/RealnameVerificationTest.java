@@ -46,6 +46,10 @@ class RealnameVerificationTest extends ApiTestBase {
         assertFalse(page.toString().contains(VALID_ID_NO));
         assertEquals("PASSED", page.path("records").get(0).path("verifyStatus").asText());
 
+        long realnameId = page.path("records").get(0).path("id").asLong();
+        JsonNode adminDetail = data(getJson("/admin/realnames/" + realnameId, adminToken));
+        assertEquals(VALID_ID_NO, adminDetail.path("idNo").asText());
+
         JsonNode profile = data(getJson("/api/auth/profile", token));
         assertEquals("PASSED", profile.path("realnameStatus").asText());
     }
