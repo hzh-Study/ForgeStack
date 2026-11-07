@@ -331,8 +331,8 @@ public abstract class ApiTestBase {
     }
 
     protected JsonNode data(ResultActions actions) throws Exception {
-        String response = actions.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(response).path("data");
+        byte[] bytes = actions.andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        return objectMapper.readTree(new String(bytes, java.nio.charset.StandardCharsets.UTF_8)).path("data");
     }
 
     protected ClockService clockService() {

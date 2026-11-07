@@ -2,6 +2,7 @@ package com.example.web.exception;
 
 import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.exception.NotPermissionException;
+import cn.dev33.satoken.exception.NotRoleException;
 import com.example.web.common.result.Result;
 import jakarta.validation.ConstraintViolationException;
 import org.mybatis.spring.MyBatisSystemException;
@@ -96,6 +97,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleNotPermissionException(NotPermissionException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Result.fail(HttpStatus.FORBIDDEN.value(), "没有权限访问：" + exception.getPermission()));
+    }
+
+    /**
+     * 处理 Sa-Token 角色不匹配异常。
+     *
+     * @param exception 角色异常
+     * @return 统一失败结果
+     */
+    @ExceptionHandler(NotRoleException.class)
+    public ResponseEntity<Result<Void>> handleNotRoleException(NotRoleException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Result.fail(HttpStatus.FORBIDDEN.value(), "没有权限访问：" + exception.getRole()));
     }
 
     /**
