@@ -1,6 +1,7 @@
 package com.example.web.module.reimbursement.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
@@ -25,8 +26,9 @@ public class DriverQuota {
     private Long driverAccountId;
 
     /**
-     * 年月，格式 yyyy-MM
+     * 年月，格式 yyyy-MM；数据库列名为 quota_month，避免使用 MySQL 保留字 year_month。
      */
+    @TableField("quota_month")
     private String yearMonth;
 
     /**

@@ -356,13 +356,13 @@ CREATE INDEX idx_biz_reimbursement_review ON biz_reimbursement_review (reimburse
 CREATE TABLE IF NOT EXISTS biz_driver_quota (
   id BIGINT NOT NULL AUTO_INCREMENT,
   driver_account_id BIGINT NOT NULL,
-  year_month VARCHAR(7) NOT NULL,
+  quota_month VARCHAR(7) NOT NULL,
   amount DOUBLE NOT NULL,
   operator_account_id BIGINT NULL,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
 );
-CREATE UNIQUE INDEX uk_biz_driver_quota ON biz_driver_quota (driver_account_id, year_month);
+CREATE UNIQUE INDEX uk_biz_driver_quota ON biz_driver_quota (driver_account_id, quota_month);
 
 CREATE TABLE IF NOT EXISTS biz_notification (
   id BIGINT NOT NULL AUTO_INCREMENT,
