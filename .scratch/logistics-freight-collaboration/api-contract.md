@@ -143,6 +143,7 @@
 | POST | `/api/driver/tasks/{id}/checkin/arrive` | body `{longitude, latitude, addressText, photos:[{purpose: UNLOAD_DONE/SIGN_RECEIPT, filePath}]}` |
 | POST | `/api/driver/tasks/{id}/checkin/remark` | body `{node: DEPART/ARRIVE, content}`，任何时间可追加 |
 | GET | `/api/driver/tasks/{id}/checkins` | 各版本打卡、照片、按时标记与追加说明 |
+| GET | `/api/driver/records` | 参数 `taskId`（可选）、`startTime`、`endTime`（按打卡提交时间）、`node`（DEPART/ARRIVE）、`pageNum`、`pageSize`；仅本人任务，按提交时间倒序返回任务号、运单号、订单 ID、节点、版本号、有效/按时标记、坐标、地址文本、照片用途与路径及该任务追加说明 |
 
 打卡规则：首次打卡全时段允许；出发打卡至少 1 张 `LOAD_DONE` 与 1 张 `VEHICLE_STATE`，到达打卡至少 1 张 `UNLOAD_DONE` 与 1 张 `SIGN_RECEIPT`；同一节点自首次提交起 20 分钟内可重复提交，最后一版有效，历史版本保留；20 分钟后锁定内容。按时判定为提交时间不晚于约定时间 + 20 分钟。
 

@@ -119,6 +119,39 @@ class OrderLifecycleTest extends ApiTestBase {
     }
 
     @Test
+    void logisticsCanCancelOwnAcceptedOrderBeforeDeparture() throws Exception {
+        Long logisticsAccountId = seedApprovedLogistics("13900000315");
+        seedApprovedLogistics("13900000317");
+        seedApprovedShipper("13900000316");
+        String shipperToken = login("13900000316", DEFAULT_PASSWORD);
+        String logisticsToken = login("13900000315", DEFAULT_PASSWORD);
+        String otherLogisticsToken = login("13900000317", DEFAULT_PASSWORD);
+
+        long orderId = publishOrder(shipperToken);
+        postJson("/api/logistics/order-pool/" + orderId + "/accept", logisticsToken, Map.of())
+                .andExpect(status().isOk());
+        seedTask(orderId, logisticsAccountId, TaskStatusEnum.PENDING_ASSIGN, null);
+
+        postJson("/api/logistics/orders/" + orderId + "/cancel", otherLogisticsToken,
+                Map.of("reason", "非本公司订单"))
+                .andExpect(status().isForbidden());
+        postJson("/api/logistics/orders/" + orderId + "/cancel", shipperToken,
+                Map.of("reason", "角色越权"))
+                .andExpect(status().isForbidden());
+
+        postJson("/api/logistics/orders/" + orderId + "/cancel", logisticsToken,
+                Map.of("reason", "车辆临时故障"))
+                .andExpect(status().isOk());
+
+        JsonNode detail = data(getJson("/api/shipper/orders/" + orderId, shipperToken));
+        assertEquals("CANCELED", detail.path("orderStatus").asText());
+        assertEquals("车辆临时故障", detail.path("cancelReason").asText());
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM biz_task WHERE order_id = ? AND task_status = 'TERMINATED'",
+                Long.class, orderId));
+    }
+
+    @Test
     void remindersAreIdempotentAndExpiredPendingOrderIsOffshelved() throws Exception {
         seedApprovedShipper("13900000308");
         seedApprovedLogistics("13900000309");

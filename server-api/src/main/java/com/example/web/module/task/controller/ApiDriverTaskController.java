@@ -2,6 +2,9 @@ package com.example.web.module.task.controller;
 
 import com.example.web.common.page.PageResult;
 import com.example.web.common.result.Result;
+import com.example.web.module.checkin.dto.DriverRecordQueryDTO;
+import com.example.web.module.checkin.service.CheckinService;
+import com.example.web.module.checkin.vo.DriverRecordVO;
 import com.example.web.module.task.dto.TaskAbandonDTO;
 import com.example.web.module.task.service.TaskDispatchService;
 import com.example.web.module.task.vo.DriverTaskDetailVO;
@@ -25,9 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiDriverTaskController {
 
     private final TaskDispatchService taskDispatchService;
+    private final CheckinService checkinService;
 
-    public ApiDriverTaskController(TaskDispatchService taskDispatchService) {
+    public ApiDriverTaskController(TaskDispatchService taskDispatchService, CheckinService checkinService) {
         this.taskDispatchService = taskDispatchService;
+        this.checkinService = checkinService;
     }
 
     /**
@@ -44,6 +49,17 @@ public class ApiDriverTaskController {
             @RequestParam(required = false) Integer pageNum,
             @RequestParam(required = false) Integer pageSize) {
         return Result.success(taskDispatchService.pageDriverTasks(tab, pageNum, pageSize));
+    }
+
+    /**
+     * 分页查询本人全部现场记录，按打卡提交时间倒序。
+     *
+     * @param dto 查询参数
+     * @return 现场记录分页数据
+     */
+    @GetMapping("/records")
+    public Result<PageResult<DriverRecordVO>> pageRecords(DriverRecordQueryDTO dto) {
+        return Result.success(checkinService.pageRecords(dto));
     }
 
     /**

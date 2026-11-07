@@ -27,6 +27,10 @@ public class SaTokenConfig implements WebMvcConfigurer {
             SaRouter.match(SaHttpMethod.OPTIONS).back();
             SaRouter.match("/admin/**").check(r -> StpUtil.checkLogin());
             SaRouter.match("/api/**").check(r -> StpUtil.checkLogin());
+            SaRouter.match("/admin/**").check(r -> StpUtil.checkRole(com.example.web.security.RoleCode.ADMIN));
+            SaRouter.match("/api/shipper/**").check(r -> StpUtil.checkRole(com.example.web.security.RoleCode.SHIPPER));
+            SaRouter.match("/api/logistics/**").check(r -> StpUtil.checkRole(com.example.web.security.RoleCode.LOGISTICS));
+            SaRouter.match("/api/driver/**").check(r -> StpUtil.checkRole(com.example.web.security.RoleCode.DRIVER));
             SaRouter.match("/admin/**").check(r -> businessAccessGuard.check());
             SaRouter.match("/api/**").notMatch("/api/auth/**").check(r -> businessAccessGuard.check());
         }).isAnnotation(true)).addPathPatterns("/**")

@@ -16,6 +16,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * 全局异常处理器，统一转换后端异常为前端可识别的 Result 结构。
@@ -109,6 +110,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleNotRoleException(NotRoleException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Result.fail(HttpStatus.FORBIDDEN.value(), "没有权限访问：" + exception.getRole()));
+    }
+
+    /**
+     * 处理不存在的静态资源，公开静态目录未映射时统一返回 404。
+     *
+     * @param exception 资源不存在异常
+     * @return 统一失败结果
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Result<Void>> handleNoResourceFoundException(NoResourceFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Result.fail(HttpStatus.NOT_FOUND.value(), "资源不存在"));
     }
 
     /**

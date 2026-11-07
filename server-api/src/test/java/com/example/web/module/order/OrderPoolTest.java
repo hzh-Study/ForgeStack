@@ -162,9 +162,9 @@ class OrderPoolTest extends ApiTestBase {
         seedApprovedShipper("13900000209");
         String token = login("13900000209", DEFAULT_PASSWORD);
         getJson("/api/logistics/order-pool", token, Map.of("pageSize", "10"))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isForbidden())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
-                        .jsonPath("$.message", org.hamcrest.Matchers.containsString("无权访问当前业务")));
+                        .jsonPath("$.message", org.hamcrest.Matchers.containsString("没有权限访问")));
     }
 
     private String acceptConcurrently(String path, String token, CountDownLatch ready, CountDownLatch go)

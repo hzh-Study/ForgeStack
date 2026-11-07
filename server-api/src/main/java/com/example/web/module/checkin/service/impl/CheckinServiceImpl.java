@@ -2,7 +2,9 @@ package com.example.web.module.checkin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.web.common.enums.EnableStatusEnum;
+import com.example.web.common.page.PageResult;
 import com.example.web.common.time.ClockService;
 import com.example.web.exception.BusinessException;
 import com.example.web.exception.ForbiddenException;
@@ -11,6 +13,7 @@ import com.example.web.module.account.enums.AccountRoleEnum;
 import com.example.web.module.checkin.dto.CheckinPhotoDTO;
 import com.example.web.module.checkin.dto.CheckinRemarkDTO;
 import com.example.web.module.checkin.dto.CheckinSubmitDTO;
+import com.example.web.module.checkin.dto.DriverRecordQueryDTO;
 import com.example.web.module.checkin.entity.Checkin;
 import com.example.web.module.checkin.entity.CheckinPhoto;
 import com.example.web.module.checkin.entity.CheckinRemark;
@@ -20,8 +23,10 @@ import com.example.web.module.checkin.mapper.CheckinMapper;
 import com.example.web.module.checkin.mapper.CheckinPhotoMapper;
 import com.example.web.module.checkin.mapper.CheckinRemarkMapper;
 import com.example.web.module.checkin.service.CheckinService;
+import com.example.web.module.checkin.vo.CheckinPhotoVO;
 import com.example.web.module.checkin.vo.CheckinRemarkVO;
 import com.example.web.module.checkin.vo.CheckinResultVO;
+import com.example.web.module.checkin.vo.DriverRecordVO;
 import com.example.web.module.checkin.vo.TaskCheckinDetailVO;
 import com.example.web.module.checkin.vo.TaskCheckinSummaryVO;
 import com.example.web.module.file.entity.StoredFile;
@@ -42,9 +47,14 @@ import com.example.web.module.task.mapper.TaskMapper;
 import com.example.web.module.task.service.TaskQueryService;
 import com.example.web.security.CurrentAccountService;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +69,11 @@ public class CheckinServiceImpl implements CheckinService {
      * 打卡窗口默认分钟数。
      */
     private static final int DEFAULT_WINDOW_MINUTES = 20;
+
+    /**
+     * 接口时间格式。
+     */
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final CurrentAccountService currentAccountService;
     private final TaskQueryService taskQueryService;
@@ -242,6 +257,190 @@ public class CheckinServiceImpl implements CheckinService {
         vo.setArriveVersions(summary.getArriveVersions());
         vo.setRemarks(summary.getRemarks());
         return vo;
+    }
+
+    /**
+     * 分页查询司机本人全部任务的打卡版本，复用归属校验与打卡汇总字段口径。
+     *
+     * @param dto 查询参数
+     * @return 现场记录分页数据
+     */
+    @Override
+    public PageResult<DriverRecordVO> pageRecords(DriverRecordQueryDTO dto) {
+        Account account = requireDriverAccount();
+        if (dto.getTaskId() != null) {
+            // 指定任务时先复用归属校验，他人任务直接返回无权限
+            taskQueryService.getDriverTask(dto.getTaskId(), account.getId());
+        }
+        List<Task> tasks = listDriverTasks(account.getId(), dto.getTaskId());
+        if (tasks.isEmpty()) {
+            return new PageResult<>(Collections.emptyList(), 0L, dto.getPageNum(), dto.getPageSize());
+        }
+        List<Long> taskIds = tasks.stream().map(Task::getId).toList();
+        LambdaQueryWrapper<Checkin> wrapper = new LambdaQueryWrapper<Checkin>()
+                .in(Checkin::getTaskId, taskIds);
+        if (dto.getNode() != null && !dto.getNode().isBlank()) {
+            CheckinNodeEnum node = CheckinNodeEnum.of(dto.getNode().trim());
+            if (node == null) {
+                throw new BusinessException("打卡节点不正确");
+            }
+            wrapper.eq(Checkin::getNode, node.getCode());
+        }
+        LocalDateTime startTime = parseDateTime(dto.getStartTime(), false);
+        LocalDateTime endTime = parseDateTime(dto.getEndTime(), true);
+        if (startTime != null) {
+            wrapper.ge(Checkin::getSubmitTime, startTime);
+        }
+        if (endTime != null) {
+            wrapper.le(Checkin::getSubmitTime, endTime);
+        }
+        wrapper.orderByDesc(Checkin::getSubmitTime).orderByDesc(Checkin::getId);
+        Page<Checkin> page = checkinMapper.selectPage(
+                new Page<>(dto.getPageNum(), dto.getPageSize()), wrapper);
+        if (page.getRecords().isEmpty()) {
+            return new PageResult<>(Collections.emptyList(), page.getTotal(), dto.getPageNum(), dto.getPageSize());
+        }
+        Map<Long, Task> taskMap = tasks.stream()
+                .collect(Collectors.toMap(Task::getId, task -> task, (first, second) -> first));
+        Map<Long, Order> orderMap = loadOrdersByTask(tasks);
+        Map<Long, List<CheckinPhoto>> photosByCheckin = loadCheckinPhotos(page.getRecords());
+        Map<Long, List<CheckinRemark>> remarksByTask = loadTaskRemarks(taskIds);
+        List<DriverRecordVO> records = page.getRecords().stream()
+                .map(checkin -> toDriverRecord(checkin, taskMap.get(checkin.getTaskId()),
+                        orderMap.get(checkin.getOrderId()), photosByCheckin.get(checkin.getId()),
+                        remarksByTask.get(checkin.getTaskId())))
+                .toList();
+        return new PageResult<>(records, page.getTotal(), dto.getPageNum(), dto.getPageSize());
+    }
+
+    /**
+     * 查询司机本人任务，指定任务时限定该任务。
+     *
+     * @param driverAccountId 司机账号 ID
+     * @param taskId 任务 ID，可为空
+     * @return 任务列表
+     */
+    private List<Task> listDriverTasks(Long driverAccountId, Long taskId) {
+        LambdaQueryWrapper<Task> wrapper = new LambdaQueryWrapper<Task>()
+                .eq(Task::getDriverAccountId, driverAccountId);
+        if (taskId != null) {
+            wrapper.eq(Task::getId, taskId);
+        }
+        return taskMapper.selectList(wrapper);
+    }
+
+    /**
+     * 批量加载任务所属订单，用于补充运单号。
+     *
+     * @param tasks 任务列表
+     * @return 订单 ID 到订单映射
+     */
+    private Map<Long, Order> loadOrdersByTask(List<Task> tasks) {
+        List<Long> orderIds = tasks.stream().map(Task::getOrderId).filter(id -> id != null)
+                .distinct().toList();
+        if (orderIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return orderMapper.selectBatchIds(orderIds).stream()
+                .collect(Collectors.toMap(Order::getId, order -> order, (first, second) -> first));
+    }
+
+    /**
+     * 批量加载打卡版本照片，按打卡记录 ID 分组。
+     *
+     * @param checkins 打卡版本列表
+     * @return 打卡记录 ID 到照片列表映射
+     */
+    private Map<Long, List<CheckinPhoto>> loadCheckinPhotos(List<Checkin> checkins) {
+        List<Long> checkinIds = checkins.stream().map(Checkin::getId).toList();
+        if (checkinIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return checkinPhotoMapper.selectList(new LambdaQueryWrapper<CheckinPhoto>()
+                        .in(CheckinPhoto::getCheckinId, checkinIds)
+                        .orderByAsc(CheckinPhoto::getId))
+                .stream().collect(Collectors.groupingBy(CheckinPhoto::getCheckinId));
+    }
+
+    /**
+     * 批量加载任务追加说明，按任务 ID 分组。
+     *
+     * @param taskIds 任务 ID 列表
+     * @return 任务 ID 到追加说明列表映射
+     */
+    private Map<Long, List<CheckinRemark>> loadTaskRemarks(List<Long> taskIds) {
+        if (taskIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return checkinRemarkMapper.selectList(new LambdaQueryWrapper<CheckinRemark>()
+                        .in(CheckinRemark::getTaskId, taskIds)
+                        .orderByAsc(CheckinRemark::getId))
+                .stream().collect(Collectors.groupingBy(CheckinRemark::getTaskId));
+    }
+
+    /**
+     * 将打卡版本组装为司机现场记录。
+     *
+     * @param checkin 打卡版本
+     * @param task 任务
+     * @param order 订单
+     * @param photos 版本照片
+     * @param remarks 任务追加说明
+     * @return 现场记录
+     */
+    private DriverRecordVO toDriverRecord(Checkin checkin, Task task, Order order,
+                                          List<CheckinPhoto> photos, List<CheckinRemark> remarks) {
+        DriverRecordVO vo = new DriverRecordVO();
+        vo.setTaskId(checkin.getTaskId());
+        vo.setTaskNo(task == null ? null : task.getTaskNo());
+        vo.setWaybillNo(order == null ? null : order.getWaybillNo());
+        vo.setOrderId(checkin.getOrderId());
+        vo.setNode(checkin.getNode());
+        vo.setVersionNo(checkin.getVersionNo());
+        vo.setIsValid(checkin.getIsValid());
+        vo.setOnTime(checkin.getOnTime());
+        vo.setSubmitTime(checkin.getSubmitTime());
+        vo.setLongitude(checkin.getLongitude());
+        vo.setLatitude(checkin.getLatitude());
+        vo.setAddressText(checkin.getAddressText());
+        List<CheckinPhotoVO> photoVOs = new ArrayList<>();
+        if (photos != null) {
+            for (CheckinPhoto photo : photos) {
+                CheckinPhotoVO photoVO = new CheckinPhotoVO();
+                photoVO.setPhotoId(photo.getId());
+                photoVO.setPurpose(photo.getPhotoPurpose());
+                photoVO.setFilePath(photo.getFilePath());
+                photoVOs.add(photoVO);
+            }
+        }
+        vo.setPhotos(photoVOs);
+        vo.setRemarks(remarks == null ? Collections.emptyList()
+                : remarks.stream().map(this::toRemarkVO).toList());
+        return vo;
+    }
+
+    /**
+     * 解析查询时间，支持日期与时间两种格式。
+     *
+     * @param value 原始时间文本
+     * @param endOfDay 仅传日期时是否补到当天结束
+     * @return 解析结果，空文本返回 null
+     */
+    private LocalDateTime parseDateTime(String value, boolean endOfDay) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.trim();
+        try {
+            return LocalDateTime.parse(trimmed, DATE_TIME_FORMATTER);
+        } catch (DateTimeParseException exception) {
+            try {
+                return LocalDateTime.parse(trimmed + (endOfDay ? " 23:59:59" : " 00:00:00"),
+                        DATE_TIME_FORMATTER);
+            } catch (DateTimeParseException ignored) {
+                throw new BusinessException("时间格式不正确，应为 yyyy-MM-dd HH:mm:ss");
+            }
+        }
     }
 
     /**

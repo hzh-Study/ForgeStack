@@ -1,9 +1,12 @@
 package com.example.web.module.checkin.service;
 
+import com.example.web.common.page.PageResult;
 import com.example.web.module.checkin.dto.CheckinRemarkDTO;
 import com.example.web.module.checkin.dto.CheckinSubmitDTO;
+import com.example.web.module.checkin.dto.DriverRecordQueryDTO;
 import com.example.web.module.checkin.vo.CheckinRemarkVO;
 import com.example.web.module.checkin.vo.CheckinResultVO;
+import com.example.web.module.checkin.vo.DriverRecordVO;
 import com.example.web.module.checkin.vo.TaskCheckinDetailVO;
 
 /**
@@ -45,5 +48,13 @@ public interface CheckinService {
      * @return 打卡明细
      */
     TaskCheckinDetailVO getCheckins(Long taskId);
+
+    /**
+     * 分页查询司机本人全部任务的打卡版本，供 Web 辅助端查阅现场记录。
+     *
+     * @param dto 查询参数
+     * @return 现场记录分页数据
+     */
+    PageResult<DriverRecordVO> pageRecords(DriverRecordQueryDTO dto);
 
 }
