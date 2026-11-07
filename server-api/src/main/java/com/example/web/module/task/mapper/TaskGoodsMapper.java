@@ -1,0 +1,1 @@
+package com.example.web.module.task.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.task.entity.TaskGoods; import org.apache.ibatis.annotations.Mapper;  /**  * 任务承载货物关联实体，一条货物明细只能归属一个任务。 数据访问接口。  */ @Mapper public interface TaskGoodsMapper extends BaseMapper<TaskGoods> { } 

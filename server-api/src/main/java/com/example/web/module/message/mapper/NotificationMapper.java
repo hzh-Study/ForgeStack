@@ -1,0 +1,1 @@
+package com.example.web.module.message.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.message.entity.Notification; import org.apache.ibatis.annotations.Mapper;  /**  * 系统通知实体，按业务事件单向下发。 数据访问接口。  */ @Mapper public interface NotificationMapper extends BaseMapper<Notification> { } 

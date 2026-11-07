@@ -1,0 +1,1 @@
+package com.example.web.module.task.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.task.entity.TaskEvent; import org.apache.ibatis.annotations.Mapper;  /**  * 任务事件留痕实体。 数据访问接口。  */ @Mapper public interface TaskEventMapper extends BaseMapper<TaskEvent> { } 

@@ -63,6 +63,18 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理已登录但无数据访问权限的异常。
+     *
+     * @param exception 无权限异常
+     * @return 统一失败结果
+     */
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<Result<Void>> handleForbiddenException(ForbiddenException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Result.fail(HttpStatus.FORBIDDEN.value(), exception.getMessage()));
+    }
+
+    /**
      * 处理 Sa-Token 未登录异常。
      *
      * @param exception 未登录异常

@@ -1,0 +1,1 @@
+package com.example.web.module.file.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.file.entity.StoredFile; import org.apache.ibatis.annotations.Mapper;  /**  * 已上传文件记录实体，用于按角色与数据范围鉴权读取。 数据访问接口。  */ @Mapper public interface StoredFileMapper extends BaseMapper<StoredFile> { } 

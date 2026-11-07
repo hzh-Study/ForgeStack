@@ -1,0 +1,1 @@
+package com.example.web.module.checkin.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.checkin.entity.CheckinRemark; import org.apache.ibatis.annotations.Mapper;  /**  * 打卡追加说明实体，不修改原打卡记录。 数据访问接口。  */ @Mapper public interface CheckinRemarkMapper extends BaseMapper<CheckinRemark> { } 

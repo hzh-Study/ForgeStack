@@ -31,7 +31,7 @@ public class PermissionService implements StpInterface {
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
         AccountRoleEnum role = getAccountRole(loginId);
-        return role == AccountRoleEnum.ADMIN ? getAdminPermissions() : getUserPermissions();
+        return role == AccountRoleEnum.ADMIN ? getAdminPermissions() : getBusinessPermissions();
     }
 
     /**
@@ -79,12 +79,16 @@ public class PermissionService implements StpInterface {
         );
     }
 
-    private List<String> getUserPermissions() {
+    private List<String> getBusinessPermissions() {
         return List.of(
                 PermissionCode.WEB_PROFILE,
                 PermissionCode.WEB_PROFILE_UPDATE,
                 PermissionCode.WEB_PASSWORD_UPDATE,
-                PermissionCode.WEB_FILE_UPLOAD
+                PermissionCode.WEB_FILE_UPLOAD,
+                PermissionCode.BUSINESS_PROFILE,
+                PermissionCode.BUSINESS_PROFILE_UPDATE,
+                PermissionCode.BUSINESS_PASSWORD_UPDATE,
+                PermissionCode.BUSINESS_FILE_UPLOAD
         );
     }
 }

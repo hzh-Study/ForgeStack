@@ -25,6 +25,10 @@ public final class PermissionCode {
     public static final String WEB_PROFILE_UPDATE = "web:profile:update";
     public static final String WEB_PASSWORD_UPDATE = "web:password:update";
     public static final String WEB_FILE_UPLOAD = "web:file:upload";
+    public static final String BUSINESS_PROFILE = "business:profile";
+    public static final String BUSINESS_PROFILE_UPDATE = "business:profile:update";
+    public static final String BUSINESS_PASSWORD_UPDATE = "business:password:update";
+    public static final String BUSINESS_FILE_UPLOAD = "business:file:upload";
 
     private PermissionCode() {
     }

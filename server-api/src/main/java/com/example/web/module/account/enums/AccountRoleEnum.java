@@ -1,36 +1,44 @@
 package com.example.web.module.account.enums;
 
-import com.baomidou.mybatisplus.annotation.EnumValue;
-import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.Arrays;
 
 /**
- * 账号角色枚举，用于区分后台管理员和前台用户。
+ * 账号角色枚举，区分管理员、货主、物流公司与司机。
  */
 public enum AccountRoleEnum {
 
     /**
-     * 后台管理员。
+     * 管理员
      */
     ADMIN("ADMIN", "管理员", "admin"),
 
     /**
-     * 前台用户。
+     * 货主
      */
-    USER("USER", "用户", "web");
+    SHIPPER("SHIPPER", "货主", "web"),
 
     /**
-     * 数据库存储值。
+     * 物流公司
      */
-    @EnumValue
+    LOGISTICS("LOGISTICS", "物流公司", "web"),
+
+    /**
+     * 司机
+     */
+    DRIVER("DRIVER", "司机", "driver");
+
+    /**
+     * 数据库与接口使用的编码。
+     */
     private final String code;
 
     /**
-     * 角色名称。
+     * 中文名称。
      */
     private final String name;
 
     /**
-     * 前端端侧标识。
+     * 端侧标识。
      */
     private final String clientType;
 
@@ -40,7 +48,6 @@ public enum AccountRoleEnum {
         this.clientType = clientType;
     }
 
-    @JsonValue
     public String getCode() {
         return code;
     }
@@ -52,4 +59,15 @@ public enum AccountRoleEnum {
     public String getClientType() {
         return clientType;
     }
+
+    /**
+     * 按编码查找枚举，未匹配时返回 null。
+     *
+     * @param code 枚举编码
+     * @return 对应枚举或 null
+     */
+    public static AccountRoleEnum of(String code) {
+        return Arrays.stream(values()).filter(item -> item.code.equals(code)).findFirst().orElse(null);
+    }
 }
+

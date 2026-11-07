@@ -1,0 +1,1 @@
+package com.example.web.module.reimbursement.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.reimbursement.entity.DriverQuota; import org.apache.ibatis.annotations.Mapper;  /**  * 司机月度额度配置实体。 数据访问接口。  */ @Mapper public interface DriverQuotaMapper extends BaseMapper<DriverQuota> { } 

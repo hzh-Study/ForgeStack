@@ -1,0 +1,1 @@
+package com.example.web.module.driver.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.driver.entity.Driver; import org.apache.ibatis.annotations.Mapper;  /**  * 司机资料实体，关联所属物流公司、绑定车辆与实名身份。 数据访问接口。  */ @Mapper public interface DriverMapper extends BaseMapper<Driver> { } 

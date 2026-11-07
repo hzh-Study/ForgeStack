@@ -1,0 +1,1 @@
+package com.example.web.module.governance.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.governance.entity.OperationLog; import org.apache.ibatis.annotations.Mapper;  /**  * 平台操作留痕实体。 数据访问接口。  */ @Mapper public interface OperationLogMapper extends BaseMapper<OperationLog> { } 

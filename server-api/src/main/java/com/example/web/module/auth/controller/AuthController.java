@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 管理员和用户共用的认证入口。
+ * 四类角色共用的认证入口。
  */
 @RestController
 @RequestMapping("/auth")
@@ -32,8 +32,8 @@ public class AuthController {
     /**
      * 统一登录接口，账号角色由后端根据账号表自动识别。
      *
-     * @param dto 登录账号和密码
-     * @return 登录 Token 和账号端侧信息
+     * @param dto 手机号与密码
+     * @return 登录 Token、角色与端侧信息
      */
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO dto) {
@@ -41,14 +41,14 @@ public class AuthController {
     }
 
     /**
-     * 注册前台用户。
+     * 货主或物流公司自助注册。
      *
      * @param dto 注册参数
      * @return 空结果
      */
     @PostMapping("/register")
     public Result<Void> register(@Valid @RequestBody RegisterDTO dto) {
-        authService.registerUser(dto);
+        authService.registerBusiness(dto);
         return Result.success();
     }
 

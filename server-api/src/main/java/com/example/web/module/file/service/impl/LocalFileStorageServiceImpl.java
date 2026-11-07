@@ -1,8 +1,11 @@
 package com.example.web.module.file.service.impl;
 
 import com.example.web.exception.BusinessException;
+import com.example.web.module.file.entity.StoredFile;
+import com.example.web.module.file.mapper.StoredFileMapper;
 import com.example.web.module.file.service.FileStorageService;
 import com.example.web.module.file.vo.FileUploadVO;
+import com.example.web.security.CurrentAccountService;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 本地文件存储实现。
+ * 本地文件存储实现，上传成功后写入文件记录供鉴权接口校验。
  */
 @Service
 public class LocalFileStorageServiceImpl implements FileStorageService {
@@ -50,6 +53,14 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
 
     private Set<String> allowedExtensionSet = Set.of();
 
+    private final StoredFileMapper storedFileMapper;
+    private final CurrentAccountService currentAccountService;
+
+    public LocalFileStorageServiceImpl(StoredFileMapper storedFileMapper, CurrentAccountService currentAccountService) {
+        this.storedFileMapper = storedFileMapper;
+        this.currentAccountService = currentAccountService;
+    }
+
     @PostConstruct
     public void initAllowedExtensions() {
         allowedExtensionSet = Arrays.stream(allowedExtensions.split(","))
@@ -64,14 +75,15 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
         if (files == null || files.length == 0) {
             throw new BusinessException("文件不能为空");
         }
+        Long uploaderAccountId = currentAccountService.getBusinessAccount().getId();
         List<FileUploadVO> result = new ArrayList<>();
         for (MultipartFile file : files) {
-            result.add(saveFile(file, module, fileType));
+            result.add(saveFile(file, module, fileType, uploaderAccountId));
         }
         return result;
     }
 
-    private FileUploadVO saveFile(MultipartFile file, String module, String fileType) {
+    private FileUploadVO saveFile(MultipartFile file, String module, String fileType, Long uploaderAccountId) {
         if (file == null || file.isEmpty() || file.getSize() <= 0) {
             throw new BusinessException("上传的文件不能为空");
         }
@@ -93,6 +105,15 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
             throw new BusinessException("文件上传失败");
         }
         String url = String.join("/", accessPrefix, safeModule, safeFileType, datePath, fileName).replace("\\", "/");
+
+        StoredFile storedFile = new StoredFile();
+        storedFile.setFilePath(url);
+        storedFile.setOriginalName(originalName);
+        storedFile.setUploaderAccountId(uploaderAccountId);
+        storedFile.setFileModule(safeModule);
+        storedFile.setFileType(safeFileType);
+        storedFileMapper.insert(storedFile);
+
         return new FileUploadVO(url, originalName, fileName, file.getSize(), file.getContentType());
     }
 

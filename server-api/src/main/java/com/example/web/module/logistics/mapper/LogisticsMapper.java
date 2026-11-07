@@ -1,0 +1,1 @@
+package com.example.web.module.logistics.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.logistics.entity.Logistics; import org.apache.ibatis.annotations.Mapper;  /**  * 物流公司资料实体，通过唯一账号外键与统一账号一对一关联。 数据访问接口。  */ @Mapper public interface LogisticsMapper extends BaseMapper<Logistics> { } 

@@ -1,47 +1,34 @@
 package com.example.web.module.auth.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email;
 
 /**
- * 前台当前用户资料修改参数。
+ * 当前登录账号资料修改参数，只允许维护展示资料。
  */
 public class UserProfileUpdateDTO {
 
     /**
-     * 用户昵称。
+     * 姓名或昵称。
      */
-    @NotBlank(message = "昵称不能为空")
-    private String nickname;
-
-    /**
-     * 手机号。
-     */
-    private String phone;
+    private String name;
 
     /**
      * 邮箱。
      */
+    @Email(message = "邮箱格式不正确")
     private String email;
 
     /**
-     * 头像相对地址。
+     * 头像相对路径。
      */
     private String avatar;
 
-    public String getNickname() {
-        return nickname;
+    public String getName() {
+        return name;
     }
 
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getEmail() {

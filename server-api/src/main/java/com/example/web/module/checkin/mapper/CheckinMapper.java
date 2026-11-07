@@ -1,0 +1,1 @@
+package com.example.web.module.checkin.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.checkin.entity.Checkin; import org.apache.ibatis.annotations.Mapper;  /**  * 打卡版本实体，历史版本永久保留。 数据访问接口。  */ @Mapper public interface CheckinMapper extends BaseMapper<Checkin> { } 

@@ -1,30 +1,39 @@
 package com.example.web.module.auth.dto;
 
+import com.example.web.module.account.enums.AccountRoleEnum;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * 前台用户注册参数。
+ * 货主与物流公司自助注册参数。
  */
 public class RegisterDTO {
 
     /**
-     * 登录账号。
+     * 注册角色，只允许货主或物流公司。
      */
-    @NotBlank(message = "账号不能为空")
-    private String username;
+    @NotNull(message = "注册角色不能为空")
+    private AccountRoleEnum role;
 
     /**
-     * 用户昵称。
+     * 手机号，同时作为登录账号。
      */
-    @NotBlank(message = "昵称不能为空")
-    private String nickname;
+    @NotBlank(message = "手机号不能为空")
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
+    private String phone;
 
     /**
-     * 用户邮箱，用于身份校验和找回密码。
+     * 主体名称或姓名。
      */
-    @NotBlank(message = "邮箱不能为空")
+    @NotBlank(message = "名称不能为空")
+    private String name;
+
+    /**
+     * 邮箱，用于找回密码。
+     */
     @Email(message = "邮箱格式不正确")
     private String email;
 
@@ -35,12 +44,43 @@ public class RegisterDTO {
     @Size(min = 6, max = 50, message = "密码长度必须为6到50位")
     private String password;
 
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-    public String getNickname() { return nickname; }
-    public void setNickname(String nickname) { this.nickname = nickname; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    public AccountRoleEnum getRole() {
+        return role;
+    }
+
+    public void setRole(AccountRoleEnum role) {
+        this.role = role;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
 }

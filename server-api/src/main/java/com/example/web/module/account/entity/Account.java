@@ -20,12 +20,12 @@ public class Account {
     private Long id;
 
     /**
-     * 账号角色：ADMIN 管理员，USER 用户。
+     * 账号角色：ADMIN 管理员，SHIPPER 货主，LOGISTICS 物流公司，DRIVER 司机。
      */
     private AccountRoleEnum role;
 
     /**
-     * 登录账号，全角色范围内唯一。
+     * 登录账号，统一使用手机号，全角色范围内唯一。
      */
     private String username;
 
@@ -43,6 +43,11 @@ public class Account {
      * 账号状态。
      */
     private EnableStatusEnum status;
+
+    /**
+     * 是否必须修改密码：1 是，0 否；司机使用初始密码首次登录后必须改密。
+     */
+    private Integer mustChangePassword;
 
     /**
      * 最后登录时间。
@@ -66,6 +71,8 @@ public class Account {
     public void setPasswordSalt(String passwordSalt) { this.passwordSalt = passwordSalt; }
     public EnableStatusEnum getStatus() { return status; }
     public void setStatus(EnableStatusEnum status) { this.status = status; }
+    public Integer getMustChangePassword() { return mustChangePassword; }
+    public void setMustChangePassword(Integer mustChangePassword) { this.mustChangePassword = mustChangePassword; }
     public LocalDateTime getLastLoginTime() { return lastLoginTime; }
     public void setLastLoginTime(LocalDateTime lastLoginTime) { this.lastLoginTime = lastLoginTime; }
     public LocalDateTime getCreateTime() { return createTime; }

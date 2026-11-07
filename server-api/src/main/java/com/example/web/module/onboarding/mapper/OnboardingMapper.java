@@ -1,0 +1,1 @@
+package com.example.web.module.onboarding.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.onboarding.entity.Onboarding; import org.apache.ibatis.annotations.Mapper;  /**  * 货主与物流公司企业入驻申请实体。 数据访问接口。  */ @Mapper public interface OnboardingMapper extends BaseMapper<Onboarding> { } 

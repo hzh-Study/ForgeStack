@@ -1,0 +1,1 @@
+package com.example.web.module.governance.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.governance.entity.ReminderRecord; import org.apache.ibatis.annotations.Mapper;  /**  * 订单到期提醒发送记录实体，按订单与提醒类型幂等。 数据访问接口。  */ @Mapper public interface ReminderRecordMapper extends BaseMapper<ReminderRecord> { } 

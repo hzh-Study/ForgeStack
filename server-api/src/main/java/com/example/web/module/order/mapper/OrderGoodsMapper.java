@@ -1,0 +1,1 @@
+package com.example.web.module.order.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.order.entity.OrderGoods; import org.apache.ibatis.annotations.Mapper;  /**  * 订单货物明细实体，按整行分配到运输任务。 数据访问接口。  */ @Mapper public interface OrderGoodsMapper extends BaseMapper<OrderGoods> { } 

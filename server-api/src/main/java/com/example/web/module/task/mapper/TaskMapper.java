@@ -1,0 +1,1 @@
+package com.example.web.module.task.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.task.entity.Task; import org.apache.ibatis.annotations.Mapper;  /**  * 运输任务实体，是派车、打卡与报销的最小单位。 数据访问接口。  */ @Mapper public interface TaskMapper extends BaseMapper<Task> { } 

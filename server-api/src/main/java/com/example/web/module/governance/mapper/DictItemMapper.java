@@ -1,0 +1,1 @@
+package com.example.web.module.governance.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.governance.entity.DictItem; import org.apache.ibatis.annotations.Mapper;  /**  * 基础资料字典项实体。 数据访问接口。  */ @Mapper public interface DictItemMapper extends BaseMapper<DictItem> { } 

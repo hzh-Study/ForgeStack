@@ -1,0 +1,1 @@
+package com.example.web.module.realname.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.realname.entity.Realname; import org.apache.ibatis.annotations.Mapper;  /**  * 实名身份实体，个人实名与企业法定代表人实名相互独立。 数据访问接口。  */ @Mapper public interface RealnameMapper extends BaseMapper<Realname> { } 

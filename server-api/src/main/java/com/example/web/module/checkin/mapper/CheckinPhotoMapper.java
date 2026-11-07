@@ -1,0 +1,1 @@
+package com.example.web.module.checkin.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.checkin.entity.CheckinPhoto; import org.apache.ibatis.annotations.Mapper;  /**  * 打卡现场照片实体，不可覆盖与删除。 数据访问接口。  */ @Mapper public interface CheckinPhotoMapper extends BaseMapper<CheckinPhoto> { } 

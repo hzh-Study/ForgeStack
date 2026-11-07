@@ -1,0 +1,1 @@
+package com.example.web.module.message.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.message.entity.Conversation; import org.apache.ibatis.annotations.Mapper;  /**  * 站内消息会话实体。 数据访问接口。  */ @Mapper public interface ConversationMapper extends BaseMapper<Conversation> { } 

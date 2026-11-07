@@ -1,0 +1,1 @@
+package com.example.web.module.onboarding.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.onboarding.entity.OnboardingFile; import org.apache.ibatis.annotations.Mapper;  /**  * 企业入驻资质附件实体。 数据访问接口。  */ @Mapper public interface OnboardingFileMapper extends BaseMapper<OnboardingFile> { } 

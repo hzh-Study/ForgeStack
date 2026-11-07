@@ -1,0 +1,1 @@
+package com.example.web.module.reimbursement.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.reimbursement.entity.ReimbursementReview; import org.apache.ibatis.annotations.Mapper;  /**  * 报销审核记录实体。 数据访问接口。  */ @Mapper public interface ReimbursementReviewMapper extends BaseMapper<ReimbursementReview> { } 

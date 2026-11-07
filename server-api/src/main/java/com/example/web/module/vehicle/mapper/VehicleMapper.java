@@ -1,0 +1,1 @@
+package com.example.web.module.vehicle.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.vehicle.entity.Vehicle; import org.apache.ibatis.annotations.Mapper;  /**  * 物流公司名下车辆实体，与司机一对一绑定。 数据访问接口。  */ @Mapper public interface VehicleMapper extends BaseMapper<Vehicle> { } 

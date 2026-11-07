@@ -3,11 +3,10 @@ package com.example.web.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web MVC 通用配置。
+ * Web MVC 通用配置，业务文件不再通过公开静态目录访问。
  */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -26,11 +25,5 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
-    }
-
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/files/**")
-                .addResourceLocations("file:external-resources/");
     }
 }

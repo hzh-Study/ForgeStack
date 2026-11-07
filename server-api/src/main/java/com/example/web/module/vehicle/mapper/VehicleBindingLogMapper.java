@@ -1,0 +1,1 @@
+package com.example.web.module.vehicle.mapper;  import com.baomidou.mybatisplus.core.mapper.BaseMapper; import com.example.web.module.vehicle.entity.VehicleBindingLog; import org.apache.ibatis.annotations.Mapper;  /**  * 司机车辆绑定调整留痕实体。 数据访问接口。  */ @Mapper public interface VehicleBindingLogMapper extends BaseMapper<VehicleBindingLog> { } 
