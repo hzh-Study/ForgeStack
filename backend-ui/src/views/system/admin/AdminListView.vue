@@ -30,9 +30,7 @@
       <el-table v-loading="loading" :data="tableData" border>
         <el-table-column label="头像" width="90">
           <template #default="{ row }">
-            <el-image v-if="row.avatar" class="h-[38px] w-[38px] cursor-pointer rounded-full"
-              :src="resolveFileUrl(row.avatar)" :preview-src-list="[resolveFileUrl(row.avatar)]" fit="cover"
-              preview-teleported />
+            <AuthImage v-if="row.avatar" class="h-[38px] w-[38px] rounded-full" :path="row.avatar" />
             <el-avatar v-else :size="38">
               {{ getAvatarText(row) }}
             </el-avatar>
@@ -78,7 +76,8 @@
         </el-form-item>
         <el-form-item label="头像">
           <div class="flex items-center gap-4">
-            <el-avatar :size="56" :src="resolveFileUrl(form.avatar)">
+            <AuthImage v-if="form.avatar" class="h-14 w-14 rounded-full" :path="form.avatar" />
+            <el-avatar v-else :size="56">
               {{ form.realName?.slice(0, 1) || form.username?.slice(0, 1) || '管' }}
             </el-avatar>
             <el-upload :show-file-list="false" accept="image/*" :http-request="handleAvatarUpload">
@@ -125,8 +124,8 @@ import { ElMessageBox } from 'element-plus'
 import { Delete, Edit, Key, Plus, Refresh, Search, Upload } from '@element-plus/icons-vue'
 import { createAdmin, deleteAdmin, pageAdmins, resetAdminPassword, updateAdmin } from '@/api/admin'
 import { uploadImage } from '@/api/upload'
+import AuthImage from '@/components/AuthImage.vue'
 import { defaultAdminForm, defaultAdminQuery, defaultPasswordForm } from '@/models/admin'
-import { resolveFileUrl } from '@/utils/file'
 import { formatDateTime } from '@/utils/format'
 import { showErrorMessage, showSuccessMessage } from '@/utils/message'
 

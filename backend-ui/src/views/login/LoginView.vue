@@ -1,14 +1,15 @@
 <template>
   <div class="grid min-h-screen place-items-center bg-gradient-to-br from-indigo-50 via-slate-50 to-cyan-50">
-    <div class="w-[380px] rounded-lg border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/70">
-      <h1 class="m-0 text-2xl font-bold text-slate-950">字母哥脚手架后台</h1>
-      <p class="mb-7 mt-2 text-slate-500">系统管理登录入口</p>
-      <el-form :model="form" size="large" @submit.prevent>
-        <el-form-item>
-          <el-input v-model="form.username" placeholder="账号" />
+    <div class="w-[400px] rounded-lg border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/70">
+      <h1 class="m-0 text-2xl font-bold text-slate-950">物流货运协同平台</h1>
+      <p class="mb-7 mt-2 text-slate-500">管理员后台登录入口，仅管理员账号可进入</p>
+      <el-form ref="formRef" :model="form" :rules="rules" size="large" @submit.prevent>
+        <el-form-item prop="username">
+          <el-input v-model="form.username" maxlength="11" placeholder="管理员手机号" />
         </el-form-item>
-        <el-form-item>
-          <el-input v-model="form.password" type="password" placeholder="密码" show-password />
+        <el-form-item prop="password">
+          <el-input v-model="form.password" type="password" placeholder="密码" show-password
+            @keyup.enter="handleLogin" />
         </el-form-item>
         <el-button type="primary" class="w-full" :loading="loading" @click="handleLogin">
           登录
@@ -23,8 +24,7 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { showErrorMessage, showSuccessMessage } from '@/utils/message'
 
@@ -32,18 +32,34 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const loading = ref(false)
+const formRef = ref()
 const form = reactive({
   username: '',
   password: ''
 })
 
+const rules = {
+  username: [
+    { required: true, message: '请输入管理员手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }
+  ],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+}
+
 /**
- * 提交后台登录表单，登录成功后跳回原访问地址或管理员管理页。
+ * 提交后台登录表单，仅管理员账号可登录，成功后跳回原访问地址或工作台。
  */
 async function handleLogin() {
+  const valid = await formRef.value.validate().then(() => true).catch(() => false)
+  if (!valid) {
+    return
+  }
   loading.value = true
   try {
-    await authStore.login(form)
+    await authStore.login({
+      username: form.username.trim(),
+      password: form.password
+    })
     showSuccessMessage('登录成功')
     router.push(route.query.redirect || '/dashboard')
   } catch (error) {

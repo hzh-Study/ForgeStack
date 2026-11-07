@@ -81,6 +81,8 @@ request.interceptors.response.use(
   (error) => {
     if (error?.response?.status === 401) {
       removeToken()
+      // 同步清理 Pinia 持久化登录态，避免刷新后继续使用失效 Token
+      localStorage.removeItem('standard_web_auth')
       if (!window.location.pathname.startsWith('/sign-in')) {
         window.location.href = '/sign-in'
       }

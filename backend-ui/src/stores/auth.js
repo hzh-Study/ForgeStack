@@ -5,15 +5,17 @@ import { getToken, removeToken, setToken } from '@/utils/auth'
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: getToken(),
+    role: '',
     accountInfo: null,
     profileLoaded: false
   }),
   getters: {
-    hasAccountInfo: (state) => Boolean(state.accountInfo && state.accountInfo.id)
+    hasAccountInfo: (state) => Boolean(state.accountInfo && state.accountInfo.id),
+    isAdmin: (state) => state.role === 'ADMIN' || state.accountInfo?.clientType === 'admin'
   },
   actions: {
     /**
-     * 执行后台登录并保存后端颁发的 Token。
+     * 执行后台登录并保存后端颁发的 Token，仅接受管理员角色。
      *
      * @param {Object} form 登录表单
      */
@@ -22,10 +24,11 @@ export const useAuthStore = defineStore('auth', {
       if (result.status === false) {
         throw result
       }
-      if (result.data.clientType !== 'admin') {
-        throw { message: '当前账号不是管理员账号' }
+      if (result.data.role !== 'ADMIN' || result.data.clientType !== 'admin') {
+        throw { message: '仅管理员账号可登录后台管理端' }
       }
       this.token = result.data.token
+      this.role = result.data.role
       setToken(result.data.token)
       try {
         await this.fetchProfile()
@@ -47,7 +50,11 @@ export const useAuthStore = defineStore('auth', {
       if (result.status === false) {
         throw result
       }
+      if (result.data?.clientType !== 'admin') {
+        throw { message: '仅管理员账号可登录后台管理端' }
+      }
       this.accountInfo = result.data
+      this.role = 'ADMIN'
       this.profileLoaded = true
       return result.data
     },
@@ -63,6 +70,7 @@ export const useAuthStore = defineStore('auth', {
      */
     clearAuth() {
       this.token = ''
+      this.role = ''
       this.accountInfo = null
       this.profileLoaded = false
       removeToken()
@@ -70,6 +78,6 @@ export const useAuthStore = defineStore('auth', {
   },
   persist: {
     key: 'standard_admin_auth',
-    paths: ['token']
+    paths: ['token', 'role']
   }
 })

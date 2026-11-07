@@ -10,7 +10,7 @@
       <el-form v-if="step === 0" ref="identityFormRef" :model="identityForm" :rules="identityRules"
         size="large" @submit.prevent>
         <el-form-item prop="username">
-          <el-input v-model="identityForm.username" placeholder="管理员账号" />
+          <el-input v-model="identityForm.username" maxlength="11" placeholder="管理员手机号" />
         </el-form-item>
         <el-form-item prop="email">
           <el-input v-model="identityForm.email" placeholder="邮箱" />
@@ -75,7 +75,10 @@ function validateConfirmPassword(rule, value, callback) {
 }
 
 const identityRules = {
-  username: [{ required: true, message: '请输入管理员账号', trigger: 'blur' }],
+  username: [
+    { required: true, message: '请输入管理员手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }
+  ],
   email: [
     { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }

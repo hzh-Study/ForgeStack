@@ -18,9 +18,11 @@ const REQUEST_TIMEOUT = 10 * 60 * 1000
 /**
  * 获取后端基础地址，统一读取环境变量，不允许页面散落硬编码。
  *
+ * 上传工具同样复用本方法，保证请求与上传使用同一后端地址。
+ *
  * @returns {string} 后端基础地址
  */
-function getBaseUrl() {
+export function getApiBaseUrl() {
   return import.meta.env.VITE_API_BASE_URL || ''
 }
 
@@ -88,7 +90,7 @@ function request(options) {
   }
   return new Promise((resolve, reject) => {
     uni.request({
-      url: getBaseUrl() + options.url,
+      url: getApiBaseUrl() + options.url,
       method: options.method || 'GET',
       data: options.data,
       timeout: REQUEST_TIMEOUT,

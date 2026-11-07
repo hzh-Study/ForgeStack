@@ -43,3 +43,19 @@ export function removeToken() {
     console.error('清理 Token 失败', error)
   }
 }
+
+/**
+ * 校验登录态，未登录时跳转登录页。
+ *
+ * 司机端所有业务页面都依赖登录态，页面 onShow 先调用本方法，
+ * 避免无 Token 时继续请求业务接口。
+ *
+ * @returns {boolean} true 表示已登录，false 表示已跳转登录页
+ */
+export function ensureLogin() {
+  if (getToken()) {
+    return true
+  }
+  uni.reLaunch({ url: '/pages/login/login' })
+  return false
+}

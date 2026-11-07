@@ -1,49 +1,73 @@
 <template>
-  <header class="flex h-[72px] items-center justify-between border-b border-slate-200 bg-white px-[max(24px,calc((100%_-_1120px)/2))]">
-    <router-link class="text-xl font-extrabold text-slate-950" to="/">字母哥脚手架</router-link>
-    <nav class="flex items-center gap-6 text-slate-600">
-      <router-link class="router-link" active-class="text-blue-600" to="/">首页</router-link>
-      <template v-if="authStore.token && authStore.accountInfo">
+  <header class="flex h-[72px] items-center justify-between border-b border-slate-200 bg-white px-6">
+    <div class="flex items-center gap-6">
+      <router-link class="text-xl font-extrabold text-slate-950" to="/">物流货运协同平台</router-link>
+      <span v-if="authStore.hasAccountInfo" class="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+        {{ authStore.roleName }}
+      </span>
+    </div>
+
+    <nav class="flex items-center gap-4 text-slate-600">
+      <template v-if="authStore.hasAccountInfo">
+        <el-tooltip content="消息中心" placement="bottom">
+          <button class="flex items-center rounded-md px-2 py-2 hover:bg-slate-50" @click="goMessages">
+            <el-badge :value="unreadTotal" :hidden="unreadTotal === 0" :max="99">
+              <el-icon :size="20"><Bell /></el-icon>
+            </el-badge>
+          </button>
+        </el-tooltip>
         <el-dropdown trigger="click" @command="handleUserCommand">
           <el-button text class="!h-auto !px-2 !py-1.5">
             <span class="flex items-center gap-2 text-slate-700">
-            <el-avatar :size="32" :src="accountAvatar">{{ accountName.slice(0, 1) }}</el-avatar>
-            <span class="max-w-32 truncate text-sm font-medium">{{ accountName }}</span>
-            <el-icon class="text-slate-400"><ArrowDown /></el-icon>
+              <AuthImage
+                v-if="authStore.accountInfo?.avatar"
+                :path="authStore.accountInfo.avatar"
+                width="32px"
+                height="32px"
+                circle
+              />
+              <el-avatar v-else :size="32">{{ accountName.slice(0, 1) }}</el-avatar>
+              <span class="flex max-w-40 flex-col items-start leading-4">
+                <span class="truncate text-sm font-medium">{{ accountName }}</span>
+                <span class="text-xs text-slate-400">{{ authStore.roleName }}</span>
+              </span>
+              <el-icon class="text-slate-400"><ArrowDown /></el-icon>
             </span>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="profile" :icon="User">个人修改</el-dropdown-item>
-              <el-dropdown-item command="password" :icon="Lock">密码修改</el-dropdown-item>
-              <el-dropdown-item divided command="logout" :icon="SwitchButton">退出</el-dropdown-item>
+              <el-dropdown-item command="message" :icon="ChatDotRound">消息中心</el-dropdown-item>
+              <el-dropdown-item command="profile" :icon="User">个人资料</el-dropdown-item>
+              <el-dropdown-item command="password" :icon="Lock">修改密码</el-dropdown-item>
+              <el-dropdown-item divided command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
       </template>
-      <router-link v-else class="router-link" active-class="text-blue-600" to="/sign-in">登录</router-link>
+      <template v-else>
+        <router-link class="router-link" to="/sign-in">登录</router-link>
+        <router-link class="router-link" to="/sign-up">注册</router-link>
+      </template>
     </nav>
 
-    <el-dialog v-model="profileVisible" title="个人修改" width="520px">
-      <el-form ref="profileFormRef" :model="profileForm" :rules="profileRules" label-width="90px">
+    <el-dialog v-model="profileVisible" title="个人资料" width="520px">
+      <el-form ref="profileFormRef" :model="profileForm" :rules="profileRules" label-width="80px">
         <el-form-item label="头像">
           <div class="flex items-center gap-4">
-            <el-image v-if="profileForm.avatar" class="h-14 w-14 cursor-pointer rounded-full"
-              :src="resolveFileUrl(profileForm.avatar)" :preview-src-list="[resolveFileUrl(profileForm.avatar)]"
-              fit="cover" preview-teleported />
-            <el-avatar v-else :size="56">{{ profileForm.nickname?.slice(0, 1) || accountName.slice(0, 1) }}</el-avatar>
+            <AuthImage v-if="profileForm.avatar" :path="profileForm.avatar" width="56px" height="56px" circle />
+            <el-avatar v-else :size="56">{{ accountName.slice(0, 1) }}</el-avatar>
             <el-upload :show-file-list="false" accept="image/*" :http-request="handleAvatarUpload">
               <el-button :icon="Upload" :loading="avatarUploading">上传头像</el-button>
             </el-upload>
           </div>
         </el-form-item>
-        <el-form-item label="昵称" prop="nickname">
-          <el-input v-model="profileForm.nickname" placeholder="请输入昵称" />
+        <el-form-item label="名称" prop="name">
+          <el-input v-model="profileForm.name" placeholder="请输入名称" maxlength="50" />
         </el-form-item>
         <el-form-item label="手机号">
-          <el-input v-model="profileForm.phone" placeholder="请输入手机号" />
+          <el-input :model-value="authStore.accountInfo?.username" disabled />
         </el-form-item>
-        <el-form-item label="邮箱">
+        <el-form-item label="邮箱" prop="email">
           <el-input v-model="profileForm.email" placeholder="请输入邮箱" />
         </el-form-item>
       </el-form>
@@ -53,13 +77,16 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="passwordVisible" title="密码修改" width="420px">
+    <el-dialog v-model="passwordVisible" title="修改密码" width="440px">
       <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-width="90px">
         <el-form-item label="原密码" prop="oldPassword">
           <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入原密码" />
         </el-form-item>
         <el-form-item label="新密码" prop="newPassword">
           <el-input v-model="passwordForm.newPassword" type="password" show-password placeholder="请输入新密码" />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input v-model="passwordForm.confirmPassword" type="password" show-password placeholder="请再次输入新密码" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -71,17 +98,19 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowDown, Lock, SwitchButton, Upload, User } from '@element-plus/icons-vue'
+import { ArrowDown, Bell, ChatDotRound, Lock, SwitchButton, Upload, User } from '@element-plus/icons-vue'
 import { changePassword, updateProfile } from '@/api/auth'
+import { getUnreadCount } from '@/api/messages'
 import { uploadImage } from '@/api/upload'
+import AuthImage from '@/components/AuthImage.vue'
 import { useAuthStore } from '@/stores/auth'
-import { resolveFileUrl } from '@/utils/file'
 import { showErrorMessage, showSuccessMessage } from '@/utils/message'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const unreadTotal = ref(0)
 const saving = ref(false)
 const avatarUploading = ref(false)
 const profileVisible = ref(false)
@@ -89,31 +118,81 @@ const passwordVisible = ref(false)
 const profileFormRef = ref()
 const passwordFormRef = ref()
 const profileForm = reactive({
-  nickname: '',
-  phone: '',
+  name: '',
   email: '',
   avatar: ''
 })
 const passwordForm = reactive({
   oldPassword: '',
-  newPassword: ''
+  newPassword: '',
+  confirmPassword: ''
 })
-const accountName = computed(() => authStore.accountInfo?.nickname || authStore.accountInfo?.username || '用户')
-const accountAvatar = computed(() => resolveFileUrl(authStore.accountInfo?.avatar))
+const accountName = computed(() => authStore.accountInfo?.name || authStore.accountInfo?.username || '用户')
 const profileRules = {
-  nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }]
-}
-const passwordRules = {
-  oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
-  newPassword: [{ required: true, message: '请输入新密码', trigger: 'blur' }]
+  name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }]
 }
 
 /**
- * 处理顶部用户下拉菜单命令，打开弹窗或退出登录。
+ * 校验两次输入的新密码是否一致。
+ */
+function validateConfirmPassword(rule, value, callback) {
+  if (value !== passwordForm.newPassword) {
+    callback(new Error('两次输入的密码不一致'))
+    return
+  }
+  callback()
+}
+
+const passwordRules = {
+  oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, max: 50, message: '密码长度必须为6到50位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    { validator: validateConfirmPassword, trigger: 'blur' }
+  ]
+}
+
+let unreadTimer = null
+
+/**
+ * 静默刷新顶栏铃铛未读数，Token 失效时交给请求层处理。
+ */
+async function refreshUnreadCount() {
+  if (!authStore.hasAccountInfo) {
+    unreadTotal.value = 0
+    return
+  }
+  try {
+    const result = await getUnreadCount()
+    if (result.status !== false) {
+      unreadTotal.value = Number(result.data?.total || 0)
+    }
+  } catch (error) {
+    unreadTotal.value = 0
+  }
+}
+
+/**
+ * 跳转消息中心；打开会话后由消息页重新拉取未读数。
+ */
+function goMessages() {
+  router.push('/messages')
+}
+
+/**
+ * 处理顶部用户下拉菜单命令。
  *
  * @param {string} command 菜单命令
  */
 function handleUserCommand(command) {
+  if (command === 'message') {
+    goMessages()
+    return
+  }
   if (command === 'profile') {
     openProfileDialog()
     return
@@ -126,13 +205,12 @@ function handleUserCommand(command) {
 }
 
 /**
- * 打开个人资料弹窗，并使用当前 Store 中的用户信息初始化表单。
+ * 打开个人资料弹窗并回填当前账号资料。
  */
 function openProfileDialog() {
   const account = authStore.accountInfo || {}
   Object.assign(profileForm, {
-    nickname: account.nickname || '',
-    phone: account.phone || '',
+    name: account.name || '',
     email: account.email || '',
     avatar: account.avatar || ''
   })
@@ -140,20 +218,21 @@ function openProfileDialog() {
 }
 
 /**
- * 打开密码修改弹窗，并清空上一次输入的密码内容。
+ * 打开密码修改弹窗并清空上次输入。
  */
 function openPasswordDialog() {
   Object.assign(passwordForm, {
     oldPassword: '',
-    newPassword: ''
+    newPassword: '',
+    confirmPassword: ''
   })
   passwordVisible.value = true
 }
 
 /**
- * 上传当前用户头像，并保存后端返回的相对文件路径。
+ * 上传头像，保存后端返回的相对路径，等待保存资料时一并提交。
  *
- * @param {Object} options Element Plus 上传组件传入的文件参数
+ * @param {Object} options Element Plus 上传组件参数
  */
 async function handleAvatarUpload(options) {
   avatarUploading.value = true
@@ -172,17 +251,21 @@ async function handleAvatarUpload(options) {
 }
 
 /**
- * 保存当前用户资料，并把后端返回的最新账号信息回写到 Store。
+ * 保存个人资料并把后端返回的最新资料写回 Store。
  */
 async function handleProfileSave() {
   await profileFormRef.value.validate()
   saving.value = true
   try {
-    const result = await updateProfile(profileForm)
+    const result = await updateProfile({
+      name: profileForm.name,
+      email: profileForm.email,
+      avatar: profileForm.avatar
+    })
     if (result.status === false) {
       throw result
     }
-    authStore.accountInfo = result.data
+    authStore.setAccountInfo(result.data)
     profileVisible.value = false
     showSuccessMessage('个人资料已更新')
   } catch (error) {
@@ -193,18 +276,21 @@ async function handleProfileSave() {
 }
 
 /**
- * 修改当前用户密码，成功后清理 Token 并跳转到登录页重新登录。
+ * 修改密码，成功后清理登录态并要求重新登录。
  */
 async function handlePasswordSave() {
   await passwordFormRef.value.validate()
   saving.value = true
   try {
-    const result = await changePassword(passwordForm)
+    const result = await changePassword({
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
+    })
     if (result.status === false) {
       throw result
     }
     showSuccessMessage('密码修改成功，请重新登录')
-    authStore.logout()
+    authStore.clearAuth()
     passwordVisible.value = false
     router.push('/sign-in')
   } catch (error) {
@@ -215,10 +301,24 @@ async function handlePasswordSave() {
 }
 
 /**
- * 退出前台登录，并回到前台首页。
+ * 退出登录并回到登录页。
  */
 function handleLogout() {
   authStore.logout()
-  router.push('/')
+  router.push('/sign-in')
 }
+
+onMounted(() => {
+  refreshUnreadCount()
+  // 按需求使用 30 秒轮询，不引入 WebSocket
+  unreadTimer = window.setInterval(refreshUnreadCount, 30000)
+  window.addEventListener('message-unread-refresh', refreshUnreadCount)
+})
+
+onUnmounted(() => {
+  if (unreadTimer) {
+    window.clearInterval(unreadTimer)
+  }
+  window.removeEventListener('message-unread-refresh', refreshUnreadCount)
+})
 </script>

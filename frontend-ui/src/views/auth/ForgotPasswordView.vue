@@ -9,8 +9,13 @@
 
       <el-form v-if="step === 0" ref="identityFormRef" :model="identityForm" :rules="identityRules"
         size="large" @submit.prevent>
+        <el-form-item prop="role">
+          <el-select v-model="identityForm.role" placeholder="请选择账号角色" class="w-full">
+            <el-option v-for="item in LOGIN_ROLE_OPTIONS" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
         <el-form-item prop="username">
-          <el-input v-model="identityForm.username" placeholder="账号" />
+          <el-input v-model="identityForm.username" placeholder="手机号" maxlength="11" />
         </el-form-item>
         <el-form-item prop="email">
           <el-input v-model="identityForm.email" placeholder="邮箱" />
@@ -51,6 +56,7 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { resetPassword, sendPasswordResetCode, verifyPasswordReset } from '@/api/auth'
+import { LOGIN_ROLE_OPTIONS } from '@/constants/business'
 import { showErrorMessage, showSuccessMessage } from '@/utils/message'
 
 const router = useRouter()
@@ -60,7 +66,7 @@ const loading = ref(false)
 const codeSending = ref(false)
 const step = ref(0)
 const resetToken = ref('')
-const identityForm = reactive({ username: '', email: '', role: 'USER', code: '' })
+const identityForm = reactive({ username: '', email: '', role: 'SHIPPER', code: '' })
 const passwordForm = reactive({ newPassword: '', confirmPassword: '' })
 
 /**
@@ -75,7 +81,11 @@ function validateConfirmPassword(rule, value, callback) {
 }
 
 const identityRules = {
-  username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
+  role: [{ required: true, message: '请选择账号角色', trigger: 'change' }],
+  username: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }
+  ],
   email: [
     { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }

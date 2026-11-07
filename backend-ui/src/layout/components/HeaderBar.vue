@@ -1,8 +1,18 @@
 <template>
   <header class="flex h-16 items-center justify-end border-b border-slate-200 bg-white px-6">
+    <el-tooltip content="消息中心" placement="bottom">
+      <button class="mr-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100"
+        @click="router.push('/messages')">
+        <el-badge :value="unreadTotal" :max="99" :hidden="unreadTotal === 0">
+          <el-icon :size="19"><Bell /></el-icon>
+        </el-badge>
+      </button>
+    </el-tooltip>
+
     <el-dropdown trigger="click" @command="handleUserCommand">
       <button class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-slate-700 transition-colors hover:bg-slate-100">
-        <el-avatar :size="32" :src="accountAvatar">{{ accountName.slice(0, 1) }}</el-avatar>
+        <AuthImage v-if="accountAvatar" class="h-8 w-8 rounded-full" :path="accountAvatar" :preview="false" />
+        <el-avatar v-else :size="32">{{ accountName.slice(0, 1) }}</el-avatar>
         <span class="max-w-32 truncate text-sm font-medium">{{ accountName }}</span>
         <el-icon class="text-slate-400"><ArrowDown /></el-icon>
       </button>
@@ -19,9 +29,7 @@
       <el-form ref="profileFormRef" :model="profileForm" :rules="profileRules" label-width="90px">
         <el-form-item label="头像">
           <div class="flex items-center gap-4">
-            <el-image v-if="profileForm.avatar" class="h-14 w-14 cursor-pointer rounded-full"
-              :src="resolveFileUrl(profileForm.avatar)" :preview-src-list="[resolveFileUrl(profileForm.avatar)]"
-              fit="cover" preview-teleported />
+            <AuthImage v-if="profileForm.avatar" class="h-14 w-14 rounded-full" :path="profileForm.avatar" />
             <el-avatar v-else :size="56">{{ profileForm.realName?.slice(0, 1) || accountName.slice(0, 1) }}</el-avatar>
             <el-upload :show-file-list="false" accept="image/*" :http-request="handleAvatarUpload">
               <el-button :icon="Upload" :loading="avatarUploading">上传头像</el-button>
@@ -62,13 +70,14 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
-import { ArrowDown, Lock, SwitchButton, Upload, User } from '@element-plus/icons-vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { ArrowDown, Bell, Lock, SwitchButton, Upload, User } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { changePassword, updateProfile } from '@/api/auth'
+import { getUnreadCount } from '@/api/message'
 import { uploadImage } from '@/api/upload'
+import AuthImage from '@/components/AuthImage.vue'
 import { useAuthStore } from '@/stores/auth'
-import { resolveFileUrl } from '@/utils/file'
 import { showErrorMessage, showSuccessMessage } from '@/utils/message'
 
 const router = useRouter()
@@ -79,6 +88,7 @@ const profileVisible = ref(false)
 const passwordVisible = ref(false)
 const profileFormRef = ref()
 const passwordFormRef = ref()
+const unreadTotal = ref(0)
 const profileForm = reactive({
   realName: '',
   phone: '',
@@ -91,9 +101,11 @@ const passwordForm = reactive({
 })
 const accountName = computed(() => {
   const account = authStore.accountInfo
-  return account?.realName || account?.username || '脚手架系统管理'
+  return account?.realName || account?.username || '平台管理员'
 })
-const accountAvatar = computed(() => resolveFileUrl(authStore.accountInfo?.avatar))
+const accountAvatar = computed(() => authStore.accountInfo?.avatar || '')
+
+let unreadTimer = null
 
 const profileRules = {
   realName: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
@@ -102,6 +114,20 @@ const profileRules = {
 const passwordRules = {
   oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
   newPassword: [{ required: true, message: '请输入新密码', trigger: 'blur' }]
+}
+
+/**
+ * 拉取当前账号未读消息总数，失败时静默保持上一次展示。
+ */
+async function loadUnreadCount() {
+  try {
+    const result = await getUnreadCount()
+    if (result.status !== false) {
+      unreadTotal.value = result.data?.total || 0
+    }
+  } catch (error) {
+    // 顶栏未读数为非阻塞展示，轮询失败不打扰用户
+  }
 }
 
 /**
@@ -147,7 +173,7 @@ function openPasswordDialog() {
 }
 
 /**
- * 上传当前管理员头像，并保存后端返回的相对文件路径。
+ * 上传当前管理员头像，只保存后端返回的相对文件路径。
  *
  * @param {Object} options Element Plus 上传组件传入的文件参数
  */
@@ -189,7 +215,7 @@ async function handleProfileSave() {
 }
 
 /**
- * 修改当前管理员密码，成功后清理 Token 并跳转到登录页重新登录。
+ * 修改当前管理员密码，成功后清理登录态并跳转到登录页重新登录。
  */
 async function handlePasswordSave() {
   await passwordFormRef.value.validate()
@@ -217,4 +243,16 @@ function handleLogout() {
   authStore.logout()
   router.push('/login')
 }
+
+onMounted(() => {
+  loadUnreadCount()
+  unreadTimer = window.setInterval(loadUnreadCount, 30000)
+})
+
+onUnmounted(() => {
+  if (unreadTimer) {
+    window.clearInterval(unreadTimer)
+    unreadTimer = null
+  }
+})
 </script>
