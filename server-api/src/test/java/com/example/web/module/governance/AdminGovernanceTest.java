@@ -151,8 +151,8 @@ class AdminGovernanceTest extends FreightApiTestBase {
 
         postJson("/admin/platform-params", adminToken, Map.of("paramKey", "reimbursement.monthly.quota",
                 "paramValue", "6000", "description", "调整后的月度额度")).andExpect(status().isOk());
-        postJson("/admin/platform-params", adminToken, Map.of("paramKey", "order.reminder.points",
-                "paramValue", "48,24,1", "description", "到期提醒时点")).andExpect(status().isOk());
+        postJson("/admin/platform-params", adminToken, Map.of("paramKey", "order.reminder.hours.2d",
+                "paramValue", "48", "description", "到期前 2 天提醒小时数")).andExpect(status().isOk());
 
         JsonNode params = data(getJson("/admin/platform-params", adminToken));
         boolean quotaUpdated = false;
@@ -162,9 +162,9 @@ class AdminGovernanceTest extends FreightApiTestBase {
                 quotaUpdated = true;
                 assertEquals("6000", param.path("paramValue").asText());
             }
-            if ("order.reminder.points".equals(param.path("paramKey").asText())) {
+            if ("order.reminder.hours.2d".equals(param.path("paramKey").asText())) {
                 reminderCreated = true;
-                assertEquals("48,24,1", param.path("paramValue").asText());
+                assertEquals("48", param.path("paramValue").asText());
             }
         }
         assertTrue(quotaUpdated);

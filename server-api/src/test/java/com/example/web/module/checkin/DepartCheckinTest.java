@@ -329,6 +329,105 @@ class DepartCheckinTest extends FreightApiTestBase {
                 Long.class, orderId));
     }
 
+    @Test
+    void departRejectedWhenVehicleIsNotNormal() throws Exception {
+        Long logisticsAccountId = seedApprovedLogistics("13900004020");
+        seedApprovedShipper("13900004021");
+        String shipperToken = login("13900004021", DEFAULT_PASSWORD);
+        String logisticsToken = login("13900004020", DEFAULT_PASSWORD);
+
+        Long vehicleId = seedVehicle(logisticsAccountId, "京A41008");
+        Long driverAccountId = seedDriver(logisticsAccountId, vehicleId, "13900004022");
+        String driverToken = login("13900004022", DEFAULT_PASSWORD);
+        Long driverId = driverProfileId(driverAccountId);
+        String loadPhoto = seedFile(driverAccountId, "vehicle-status-load.jpg");
+        String vehiclePhoto = seedFile(driverAccountId, "vehicle-status-vehicle.jpg");
+
+        long orderId = publishOrder(shipperToken, 1);
+        acceptOrder(logisticsToken, orderId);
+        long taskId = splitTask(logisticsToken, orderId, listGoodsIds(logisticsToken, orderId))
+                .path("taskId").asLong();
+        dispatchTask(logisticsToken, taskId, driverId, vehicleId);
+        clock.setNow(LocalDateTime.of(2026, 12, 8, 8, 0));
+
+        postJson("/api/logistics/vehicles/" + vehicleId + "/status", logisticsToken,
+                Map.of("status", "REPAIR"))
+                .andExpect(status().isOk());
+        postJson("/api/driver/tasks/" + taskId + "/checkin/depart", driverToken,
+                checkinBody(116.4, 39.9, List.of(photo("LOAD_DONE", loadPhoto),
+                        photo("VEHICLE_STATE", vehiclePhoto))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("车辆当前不可用")));
+        postJson("/api/logistics/vehicles/" + vehicleId + "/status", logisticsToken,
+                Map.of("status", "DISABLED"))
+                .andExpect(status().isOk());
+        postJson("/api/driver/tasks/" + taskId + "/checkin/depart", driverToken,
+                checkinBody(116.4, 39.9, List.of(photo("LOAD_DONE", loadPhoto),
+                        photo("VEHICLE_STATE", vehiclePhoto))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("车辆当前不可用")));
+        assertEquals("WAIT_EXECUTE", jdbcTemplate.queryForObject(
+                "SELECT task_status FROM biz_task WHERE id = ?", String.class, taskId));
+
+        postJson("/api/logistics/vehicles/" + vehicleId + "/status", logisticsToken,
+                Map.of("status", "NORMAL"))
+                .andExpect(status().isOk());
+        postJson("/api/driver/tasks/" + taskId + "/checkin/depart", driverToken,
+                checkinBody(116.4, 39.9, List.of(photo("LOAD_DONE", loadPhoto),
+                        photo("VEHICLE_STATE", vehiclePhoto))))
+                .andExpect(status().isOk());
+        assertEquals("IN_TRANSPORT", jdbcTemplate.queryForObject(
+                "SELECT task_status FROM biz_task WHERE id = ?", String.class, taskId));
+    }
+
+    @Test
+    void departRejectedWhenPhotosExceedSixPerNode() throws Exception {
+        Long logisticsAccountId = seedApprovedLogistics("13900004023");
+        seedApprovedShipper("13900004024");
+        String shipperToken = login("13900004024", DEFAULT_PASSWORD);
+        String logisticsToken = login("13900004023", DEFAULT_PASSWORD);
+
+        Long vehicleId = seedVehicle(logisticsAccountId, "京A41009");
+        Long driverAccountId = seedDriver(logisticsAccountId, vehicleId, "13900004025");
+        String driverToken = login("13900004025", DEFAULT_PASSWORD);
+        Long driverId = driverProfileId(driverAccountId);
+        String vehiclePhoto = seedFile(driverAccountId, "limit-vehicle.jpg");
+        List<String> loadPhotos = new java.util.ArrayList<>();
+        for (int index = 1; index <= 6; index++) {
+            loadPhotos.add(seedFile(driverAccountId, "limit-load-" + index + ".jpg"));
+        }
+
+        long orderId = publishOrder(shipperToken, 1);
+        acceptOrder(logisticsToken, orderId);
+        long taskId = splitTask(logisticsToken, orderId, listGoodsIds(logisticsToken, orderId))
+                .path("taskId").asLong();
+        dispatchTask(logisticsToken, taskId, driverId, vehicleId);
+        clock.setNow(LocalDateTime.of(2026, 12, 8, 8, 0));
+
+        List<Map<String, String>> tooMany = new java.util.ArrayList<>();
+        for (String loadPhoto : loadPhotos) {
+            tooMany.add(photo("LOAD_DONE", loadPhoto));
+        }
+        tooMany.add(photo("VEHICLE_STATE", vehiclePhoto));
+        postJson("/api/driver/tasks/" + taskId + "/checkin/depart", driverToken,
+                checkinBody(116.4, 39.9, tooMany))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("打卡照片最多 6 张")));
+        assertEquals("WAIT_EXECUTE", jdbcTemplate.queryForObject(
+                "SELECT task_status FROM biz_task WHERE id = ?", String.class, taskId));
+
+        List<Map<String, String>> exactlySix = new java.util.ArrayList<>();
+        for (int index = 0; index < 5; index++) {
+            exactlySix.add(photo("LOAD_DONE", loadPhotos.get(index)));
+        }
+        exactlySix.add(photo("VEHICLE_STATE", vehiclePhoto));
+        postJson("/api/driver/tasks/" + taskId + "/checkin/depart", driverToken,
+                checkinBody(116.4, 39.9, exactlySix))
+                .andExpect(status().isOk());
+        assertEquals("IN_TRANSPORT", jdbcTemplate.queryForObject(
+                "SELECT task_status FROM biz_task WHERE id = ?", String.class, taskId));
+    }
+
     private String departConcurrently(long taskId, String token, String body, CountDownLatch ready,
                                       CountDownLatch go) throws Exception {
         ready.countDown();

@@ -5,16 +5,40 @@ package com.example.web.module.file.vo;
  */
 public class FileUploadVO {
 
+    /**
+     * 文件相对访问路径
+     */
     private String url;
 
+    /**
+     * 上传时的原始文件名
+     */
     private String originalName;
 
+    /**
+     * 存储后的文件名
+     */
     private String fileName;
 
+    /**
+     * 文件大小，单位为字节
+     */
     private Long size;
 
+    /**
+     * 文件内容类型
+     */
     private String contentType;
 
+    /**
+     * 构造文件上传返回信息。
+     *
+     * @param url 文件相对访问路径
+     * @param originalName 原始文件名
+     * @param fileName 存储文件名
+     * @param size 文件大小
+     * @param contentType 文件内容类型
+     */
     public FileUploadVO(String url, String originalName, String fileName, Long size, String contentType) {
         this.url = url;
         this.originalName = originalName;

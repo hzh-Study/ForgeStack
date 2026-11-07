@@ -322,6 +322,48 @@ class DriverVehicleManagementTest extends FreightApiTestBase {
         assertTrue(emptyVehicle.isNull());
     }
 
+    @Test
+    void driverCreationIgnoresLegalRepIdentityOfSamePerson() throws Exception {
+        Long logisticsAccountId = seedApprovedLogistics("13900004051");
+        Long vehicleId = seedVehicle(logisticsAccountId, "京A40501");
+        String logisticsToken = login("13900004051", DEFAULT_PASSWORD);
+
+        seedShipper("13900004052");
+        String shipperToken = login("13900004052", DEFAULT_PASSWORD);
+        String legalRepIdNo = "110101198001015001";
+        postJson("/api/onboarding/submit", shipperToken,
+                onboardingBody("法人入驻企业", "914403010000567890", legalRepIdNo))
+                .andExpect(status().isOk());
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM biz_realname WHERE realname_type = 'LEGAL_REP' AND id_no = ?",
+                Long.class, legalRepIdNo));
+
+        JsonNode created = data(postJson("/api/logistics/drivers", logisticsToken,
+                driverBody("法人兼司机", "13900004053", "init123", legalRepIdNo,
+                        "LIC40501", vehicleId, "2030-12-31")));
+        assertTrue(created.path("driverId").asLong() > 0);
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM biz_realname WHERE realname_type = 'PERSONAL' AND id_no = ?",
+                Long.class, legalRepIdNo));
+    }
+
+    private Map<String, Object> onboardingBody(String subjectName, String creditCode, String legalRepIdNo) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("subjectName", subjectName);
+        body.put("creditCode", creditCode);
+        body.put("legalRepName", "法人代表");
+        body.put("legalRepIdType", "ID_CARD");
+        body.put("legalRepIdNo", legalRepIdNo);
+        body.put("contactName", "业务联系人");
+        body.put("contactPhone", "13900004052");
+        body.put("province", "北京市");
+        body.put("city", "北京市");
+        body.put("district", "朝阳区");
+        body.put("businessScope", "普通货运");
+        body.put("attachmentPaths", List.of());
+        return body;
+    }
+
     private Map<String, Object> driverBody(String name, String phone, String password, String idNo,
                                            String licenseNo, Long vehicleId, String licenseExpireDate) {
         Map<String, Object> body = new LinkedHashMap<>();

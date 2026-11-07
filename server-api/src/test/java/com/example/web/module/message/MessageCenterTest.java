@@ -81,15 +81,15 @@ class MessageCenterTest extends FreightApiTestBase {
         assertEquals(2, detail.path("total").asLong());
         JsonNode firstMessage = detail.path("records").get(0);
         assertEquals("第一车已到装货点", firstMessage.path("content").asText());
-        assertEquals(1, firstMessage.path("isRead").asInt());
-        assertTrue(firstMessage.hasNonNull("readTime"));
-        String firstReadTime = firstMessage.path("readTime").asText();
+        assertFalse(firstMessage.has("isRead"));
+        assertFalse(firstMessage.has("readTime"));
         assertEquals(0, data(getJson("/api/messages/unread-count", logisticsToken))
                 .path("conversationUnread").asInt());
 
         JsonNode reopened = data(getJson("/api/messages/conversations/" + conversationId, logisticsToken,
                 Map.of("pageNum", "1", "pageSize", "20")));
-        assertEquals(firstReadTime, reopened.path("records").get(0).path("readTime").asText());
+        assertEquals(2, reopened.path("total").asLong());
+        assertEquals("第一车已到装货点", reopened.path("records").get(0).path("content").asText());
         assertEquals(0, data(getJson("/api/messages/unread-count", logisticsToken))
                 .path("conversationUnread").asInt());
 
@@ -99,7 +99,8 @@ class MessageCenterTest extends FreightApiTestBase {
         JsonNode shipperDetail = data(getJson("/api/messages/conversations/" + conversationId, shipperToken,
                 Map.of("pageNum", "1", "pageSize", "20")));
         assertEquals(3, shipperDetail.path("total").asLong());
-        assertEquals(1, shipperDetail.path("records").get(2).path("isRead").asInt());
+        assertEquals("收到，注意安全", shipperDetail.path("records").get(2).path("content").asText());
+        assertFalse(shipperDetail.path("records").get(2).has("isRead"));
         assertEquals(0, data(getJson("/api/messages/unread-count", shipperToken))
                 .path("conversationUnread").asInt());
     }

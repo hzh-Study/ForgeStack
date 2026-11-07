@@ -104,6 +104,25 @@ public class ReimbursementServiceImpl implements ReimbursementService {
     private final DriverMapper driverMapper;
     private final LogisticsMapper logisticsMapper;
 
+    /**
+     * 注入报销提交、审核与额度相关依赖。
+     *
+     * @param currentAccountService 当前账号服务
+     * @param taskQueryService 任务查询服务
+     * @param platformParamService 平台参数服务
+     * @param notificationService 系统通知服务
+     * @param clockService 业务时间服务
+     * @param reimbursementMapper 报销单数据访问
+     * @param reimbursementPhotoMapper 报销凭证照片数据访问
+     * @param reimbursementReviewMapper 报销审核记录数据访问
+     * @param driverQuotaMapper 司机月度额度数据访问
+     * @param dictItemMapper 字典项数据访问
+     * @param storedFileMapper 已上传文件数据访问
+     * @param taskMapper 任务数据访问
+     * @param orderMapper 订单数据访问
+     * @param driverMapper 司机资料数据访问
+     * @param logisticsMapper 物流公司资料数据访问
+     */
     public ReimbursementServiceImpl(CurrentAccountService currentAccountService,
                                     TaskQueryService taskQueryService,
                                     PlatformParamService platformParamService,
@@ -280,6 +299,9 @@ public class ReimbursementServiceImpl implements ReimbursementService {
         }
         String note = trimToNull(dto.getNote());
         if (action == ReviewActionEnum.SPECIAL_REVIEW) {
+            if (!Integer.valueOf(1).equals(reimbursement.getOverspend())) {
+                throw new BusinessException("仅超限报销单需要特殊复核");
+            }
             if (note == null) {
                 throw new BusinessException("特殊复核说明不能为空");
             }

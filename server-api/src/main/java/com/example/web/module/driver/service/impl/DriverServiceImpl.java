@@ -126,6 +126,7 @@ public class DriverServiceImpl implements DriverService {
 
         String idNo = dto.getIdNo().trim();
         Realname existingIdentity = realnameMapper.selectOne(new LambdaQueryWrapper<Realname>()
+                .eq(Realname::getRealnameType, RealnameTypeEnum.PERSONAL.getCode())
                 .eq(Realname::getIdType, dto.getIdType().getCode())
                 .eq(Realname::getIdNo, idNo));
         if (existingIdentity != null) {

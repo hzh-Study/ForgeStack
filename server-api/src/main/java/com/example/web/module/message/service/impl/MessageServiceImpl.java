@@ -590,8 +590,6 @@ public class MessageServiceImpl implements MessageService {
         vo.setSenderAccountId(message.getSenderAccountId());
         vo.setReceiverAccountId(message.getReceiverAccountId());
         vo.setContent(message.getContent());
-        vo.setIsRead(message.getIsRead());
-        vo.setReadTime(message.getReadTime());
         vo.setCreateTime(message.getCreateTime());
         return vo;
     }

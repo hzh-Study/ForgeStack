@@ -32,6 +32,8 @@ import com.example.web.module.checkin.vo.TaskCheckinSummaryVO;
 import com.example.web.module.file.entity.StoredFile;
 import com.example.web.module.file.mapper.StoredFileMapper;
 import com.example.web.module.governance.service.PlatformParamService;
+import com.example.web.module.logistics.entity.Logistics;
+import com.example.web.module.logistics.mapper.LogisticsMapper;
 import com.example.web.module.message.enums.NoticeTypeEnum;
 import com.example.web.module.message.service.NotificationService;
 import com.example.web.module.order.entity.Order;
@@ -45,6 +47,9 @@ import com.example.web.module.task.enums.TaskStatusEnum;
 import com.example.web.module.task.mapper.TaskEventMapper;
 import com.example.web.module.task.mapper.TaskMapper;
 import com.example.web.module.task.service.TaskQueryService;
+import com.example.web.module.vehicle.entity.Vehicle;
+import com.example.web.module.vehicle.enums.VehicleStatusEnum;
+import com.example.web.module.vehicle.mapper.VehicleMapper;
 import com.example.web.security.CurrentAccountService;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -71,6 +76,11 @@ public class CheckinServiceImpl implements CheckinService {
     private static final int DEFAULT_WINDOW_MINUTES = 20;
 
     /**
+     * 每个打卡节点允许提交的照片数量上限，含全部用途合计。
+     */
+    private static final int MAX_PHOTOS_PER_NODE = 6;
+
+    /**
      * 接口时间格式。
      */
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -88,13 +98,16 @@ public class CheckinServiceImpl implements CheckinService {
     private final TaskMapper taskMapper;
     private final TaskEventMapper taskEventMapper;
     private final OrderMapper orderMapper;
+    private final VehicleMapper vehicleMapper;
+    private final LogisticsMapper logisticsMapper;
 
     public CheckinServiceImpl(CurrentAccountService currentAccountService, TaskQueryService taskQueryService,
                               OrderQueryService orderQueryService, NotificationService notificationService,
                               PlatformParamService platformParamService, ClockService clockService,
                               CheckinMapper checkinMapper, CheckinPhotoMapper checkinPhotoMapper,
                               CheckinRemarkMapper checkinRemarkMapper, StoredFileMapper storedFileMapper,
-                              TaskMapper taskMapper, TaskEventMapper taskEventMapper, OrderMapper orderMapper) {
+                              TaskMapper taskMapper, TaskEventMapper taskEventMapper, OrderMapper orderMapper,
+                              VehicleMapper vehicleMapper, LogisticsMapper logisticsMapper) {
         this.currentAccountService = currentAccountService;
         this.taskQueryService = taskQueryService;
         this.orderQueryService = orderQueryService;
@@ -108,6 +121,8 @@ public class CheckinServiceImpl implements CheckinService {
         this.taskMapper = taskMapper;
         this.taskEventMapper = taskEventMapper;
         this.orderMapper = orderMapper;
+        this.vehicleMapper = vehicleMapper;
+        this.logisticsMapper = logisticsMapper;
     }
 
     /**
@@ -134,6 +149,7 @@ public class CheckinServiceImpl implements CheckinService {
             }
             ensureAllGoodsAssigned(order.getId());
             ensureNoTransport(task, account.getId());
+            ensureVehicleAvailable(task);
             int updated = updateDepartStatus(task, account.getId());
             if (updated == 0) {
                 throw new BusinessException("任务状态已变更，请刷新后重试");
@@ -504,6 +520,9 @@ public class CheckinServiceImpl implements CheckinService {
         if (requiredFirst < 1 || requiredSecond < 1) {
             throw new BusinessException(photoRequirementMessage(node));
         }
+        if (photos.size() > MAX_PHOTOS_PER_NODE) {
+            throw new BusinessException("打卡照片最多 6 张");
+        }
         for (CheckinPhotoDTO photo : photos) {
             StoredFile storedFile = storedFileMapper.selectOne(new LambdaQueryWrapper<StoredFile>()
                     .eq(StoredFile::getFilePath, photo.getFilePath()));
@@ -559,6 +578,30 @@ public class CheckinServiceImpl implements CheckinService {
                 }));
         if (count > 0) {
             throw new BusinessException("司机或车辆已有运输中任务");
+        }
+    }
+
+    /**
+     * 校验任务绑定车辆存在、属于任务所属物流公司且状态正常。
+     *
+     * @param task 任务实体
+     */
+    private void ensureVehicleAvailable(Task task) {
+        if (task.getVehicleId() == null) {
+            throw new BusinessException("任务未绑定车辆，不能出发");
+        }
+        Vehicle vehicle = vehicleMapper.selectById(task.getVehicleId());
+        if (vehicle == null) {
+            throw new BusinessException("任务绑定车辆不存在，不能出发");
+        }
+        Logistics logistics = task.getLogisticsAccountId() == null ? null
+                : logisticsMapper.selectOne(new LambdaQueryWrapper<Logistics>()
+                        .eq(Logistics::getAccountId, task.getLogisticsAccountId()));
+        if (logistics == null || !logistics.getId().equals(vehicle.getLogisticsId())) {
+            throw new BusinessException("车辆不属于任务物流公司，不能出发");
+        }
+        if (!VehicleStatusEnum.NORMAL.getCode().equals(vehicle.getVehicleStatus())) {
+            throw new BusinessException("车辆当前不可用，不能出发");
         }
     }
 

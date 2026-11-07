@@ -10,6 +10,8 @@ import com.example.web.exception.BusinessException;
 import com.example.web.module.account.entity.Account;
 import com.example.web.module.account.enums.AccountRoleEnum;
 import com.example.web.module.account.mapper.AccountMapper;
+import com.example.web.module.file.entity.StoredFile;
+import com.example.web.module.file.mapper.StoredFileMapper;
 import com.example.web.module.governance.enums.OperationActionEnum;
 import com.example.web.module.governance.service.OperationLogService;
 import com.example.web.module.message.enums.NoticeTypeEnum;
@@ -51,6 +53,7 @@ public class OnboardingServiceImpl implements OnboardingService {
     private final OnboardingFileMapper onboardingFileMapper;
     private final RealnameMapper realnameMapper;
     private final AccountMapper accountMapper;
+    private final StoredFileMapper storedFileMapper;
     private final RealnameVerificationAdapter verificationAdapter;
     private final CurrentAccountService currentAccountService;
     private final NotificationService notificationService;
@@ -59,6 +62,7 @@ public class OnboardingServiceImpl implements OnboardingService {
 
     public OnboardingServiceImpl(OnboardingMapper onboardingMapper, OnboardingFileMapper onboardingFileMapper,
                                  RealnameMapper realnameMapper, AccountMapper accountMapper,
+                                 StoredFileMapper storedFileMapper,
                                  RealnameVerificationAdapter verificationAdapter,
                                  CurrentAccountService currentAccountService,
                                  NotificationService notificationService, OperationLogService operationLogService,
@@ -67,6 +71,7 @@ public class OnboardingServiceImpl implements OnboardingService {
         this.onboardingFileMapper = onboardingFileMapper;
         this.realnameMapper = realnameMapper;
         this.accountMapper = accountMapper;
+        this.storedFileMapper = storedFileMapper;
         this.verificationAdapter = verificationAdapter;
         this.currentAccountService = currentAccountService;
         this.notificationService = notificationService;
@@ -149,7 +154,7 @@ public class OnboardingServiceImpl implements OnboardingService {
                 .eq(Onboarding::getId, onboarding.getId()));
         onboarding.setLegalRepRealnameId(legalRepRealnameId);
 
-        saveFiles(onboarding.getId(), dto.getAttachmentPaths(), now);
+        saveFiles(onboarding.getId(), dto.getAttachmentPaths(), account.getId(), now);
         notifyAdmins(onboarding);
         return buildDetail(onboarding);
     }
@@ -314,13 +319,15 @@ public class OnboardingServiceImpl implements OnboardingService {
     }
 
     /**
-     * 写入入驻资质附件行。
+     * 写入入驻资质附件行，附件必须存在且由当前账号上传。
      *
      * @param onboardingId 入驻申请 ID
      * @param attachmentPaths 附件相对路径
+     * @param uploaderAccountId 当前账号 ID
      * @param now 业务时间
      */
-    private void saveFiles(Long onboardingId, List<String> attachmentPaths, LocalDateTime now) {
+    private void saveFiles(Long onboardingId, List<String> attachmentPaths, Long uploaderAccountId,
+                           LocalDateTime now) {
         if (attachmentPaths == null) {
             return;
         }
@@ -328,10 +335,16 @@ public class OnboardingServiceImpl implements OnboardingService {
             if (path == null || path.isBlank()) {
                 continue;
             }
+            String filePath = path.trim();
+            StoredFile storedFile = storedFileMapper.selectOne(new LambdaQueryWrapper<StoredFile>()
+                    .eq(StoredFile::getFilePath, filePath));
+            if (storedFile == null || !uploaderAccountId.equals(storedFile.getUploaderAccountId())) {
+                throw new BusinessException("附件不存在或无权使用");
+            }
             OnboardingFile file = new OnboardingFile();
             file.setOnboardingId(onboardingId);
-            file.setFilePath(path.trim());
-            file.setFileName(extractFileName(path.trim()));
+            file.setFilePath(filePath);
+            file.setFileName(extractFileName(filePath));
             file.setCreateTime(now);
             onboardingFileMapper.insert(file);
         }

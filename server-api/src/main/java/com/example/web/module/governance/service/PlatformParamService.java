@@ -27,6 +27,21 @@ public class PlatformParamService {
      */
     public static final String CHECKIN_WINDOW_MINUTES = "checkin.window.minutes";
 
+    /**
+     * 订单到期前 2 天提醒小时数参数键。
+     */
+    public static final String ORDER_REMINDER_HOURS_2D = "order.reminder.hours.2d";
+
+    /**
+     * 订单到期前 1 天提醒小时数参数键。
+     */
+    public static final String ORDER_REMINDER_HOURS_1D = "order.reminder.hours.1d";
+
+    /**
+     * 订单到期前 1 小时提醒小时数参数键。
+     */
+    public static final String ORDER_REMINDER_HOURS_1H = "order.reminder.hours.1h";
+
     private final PlatformParamMapper platformParamMapper;
 
     public PlatformParamService(PlatformParamMapper platformParamMapper) {

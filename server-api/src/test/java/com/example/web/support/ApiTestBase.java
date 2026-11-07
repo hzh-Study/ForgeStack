@@ -113,7 +113,10 @@ public abstract class ApiTestBase {
         jdbcTemplate.update("INSERT INTO sys_platform_param (param_key, param_value, description) VALUES "
                 + "('order.default.valid.hours','240','订单默认有效期'),"
                 + "('reimbursement.monthly.quota','5000','月度额度默认值'),"
-                + "('checkin.window.minutes','20','打卡窗口')");
+                + "('checkin.window.minutes','20','打卡窗口'),"
+                + "('order.reminder.hours.2d','48','到期前 2 天提醒'),"
+                + "('order.reminder.hours.1d','24','到期前 1 天提醒'),"
+                + "('order.reminder.hours.1h','1','到期前 1 小时提醒')");
         jdbcTemplate.update("INSERT INTO sys_dict_item (dict_type, item_code, item_name, sort_no, status) VALUES "
                 + "('GOODS_TYPE','COAL','煤炭',1,'ENABLED'),"
                 + "('GOODS_TYPE','STEEL','钢材',2,'ENABLED'),"

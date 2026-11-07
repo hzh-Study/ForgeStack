@@ -542,6 +542,8 @@ public class WaybillServiceImpl implements WaybillService {
             TaskCheckinSummaryVO summary = summaries.get(task.getId());
             vo.setDepartCheckins(summary == null ? Collections.emptyList() : summary.getDepartVersions());
             vo.setArriveCheckins(summary == null ? Collections.emptyList() : summary.getArriveVersions());
+            vo.setRemarks(summary == null || summary.getRemarks() == null
+                    ? Collections.emptyList() : summary.getRemarks());
             result.add(vo);
         }
         return result;

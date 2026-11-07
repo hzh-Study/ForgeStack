@@ -1,5 +1,6 @@
 package com.example.web.module.task.vo;
 
+import com.example.web.module.checkin.vo.CheckinRemarkVO;
 import com.example.web.module.checkin.vo.CheckinVersionVO;
 import java.util.List;
 import lombok.Data;
@@ -84,5 +85,10 @@ public class WaybillTaskVO {
      * 到达打卡版本
      */
     private List<CheckinVersionVO> arriveCheckins;
+
+    /**
+     * 司机追加说明
+     */
+    private List<CheckinRemarkVO> remarks;
 
 }

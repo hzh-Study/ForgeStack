@@ -83,6 +83,15 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
         return result;
     }
 
+    /**
+     * 保存单个上传文件并写入文件记录。
+     *
+     * @param file 上传文件
+     * @param module 业务模块
+     * @param fileType 文件类型
+     * @param uploaderAccountId 上传账号 ID
+     * @return 文件上传返回信息
+     */
     private FileUploadVO saveFile(MultipartFile file, String module, String fileType, Long uploaderAccountId) {
         if (file == null || file.isEmpty() || file.getSize() <= 0) {
             throw new BusinessException("上传的文件不能为空");
@@ -117,6 +126,12 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
         return new FileUploadVO(url, originalName, fileName, file.getSize(), file.getContentType());
     }
 
+    /**
+     * 清理原始文件名，去除目录部分，空文件名使用 unknown。
+     *
+     * @param originalName 原始文件名
+     * @return 安全的原始文件名
+     */
     private String sanitizeOriginalName(String originalName) {
         if (originalName == null || originalName.isBlank()) {
             return "unknown";
@@ -124,6 +139,12 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
         return Paths.get(originalName).getFileName().toString();
     }
 
+    /**
+     * 提取小写扩展名，无扩展名时返回空字符串。
+     *
+     * @param originalName 原始文件名
+     * @return 带点扩展名或空字符串
+     */
     private String getExtension(String originalName) {
         int index = originalName.lastIndexOf('.');
         if (index < 0 || index == originalName.length() - 1) {
@@ -152,6 +173,13 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    /**
+     * 清理路径片段，只保留字母、数字、下划线与短横线。
+     *
+     * @param value 原始路径片段
+     * @param defaultValue 清理后为空时的默认值
+     * @return 安全的路径片段
+     */
     private String sanitizePathPart(String value, String defaultValue) {
         if (value == null || value.isBlank()) {
             return defaultValue;

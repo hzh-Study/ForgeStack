@@ -215,6 +215,10 @@ class ReimbursementTest extends FreightApiTestBase {
                 reimbursementBody(fixture.taskId, 50.0, "TOLL", "2026-12-08", List.of(fixture.receipt))))
                 .path("id").asLong();
         postJson("/api/logistics/reimbursements/" + normalId + "/review", fixture.logisticsToken,
+                Map.of("action", "SPECIAL_REVIEW", "note", "普通单也申请复核"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("仅超限报销单需要特殊复核")));
+        postJson("/api/logistics/reimbursements/" + normalId + "/review", fixture.logisticsToken,
                 Map.of("action", "REJECT", "note", ""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("驳回原因")));

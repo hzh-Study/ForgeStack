@@ -48,6 +48,7 @@ class OnboardingReviewTest extends ApiTestBase {
     @Test
     void onboardingSubmitCreatesPendingApplicationWithFiles() throws Exception {
         Long shipperAccountId = seedShipper("13900000002");
+        seedAttachments(shipperAccountId);
         String token = login("13900000002", DEFAULT_PASSWORD);
         String adminToken = login(ADMIN_PHONE, ADMIN_PASSWORD);
 
@@ -89,6 +90,7 @@ class OnboardingReviewTest extends ApiTestBase {
     @Test
     void adminApproveRecordsReviewerAndEnablesEligibility() throws Exception {
         Long shipperAccountId = seedShipper("13900000003");
+        seedAttachments(shipperAccountId);
         String token = login("13900000003", DEFAULT_PASSWORD);
         String adminToken = login(ADMIN_PHONE, ADMIN_PASSWORD);
         long onboardingId = data(postJson("/api/onboarding/submit", token,
@@ -119,7 +121,8 @@ class OnboardingReviewTest extends ApiTestBase {
 
     @Test
     void adminRejectRequiresReasonAndAllowsNewApplication() throws Exception {
-        seedShipper("13900000004");
+        Long shipperAccountId = seedShipper("13900000004");
+        seedAttachments(shipperAccountId);
         String token = login("13900000004", DEFAULT_PASSWORD);
         String adminToken = login(ADMIN_PHONE, ADMIN_PASSWORD);
         long onboardingId = data(postJson("/api/onboarding/submit", token,
@@ -152,7 +155,8 @@ class OnboardingReviewTest extends ApiTestBase {
 
     @Test
     void legalRepIdentityIsIndependentFromPersonalRealname() throws Exception {
-        seedShipper("13900000005");
+        Long firstAccountId = seedShipper("13900000005");
+        seedAttachments(firstAccountId);
         String firstToken = login("13900000005", DEFAULT_PASSWORD);
         data(postJson("/api/onboarding/submit", firstToken,
                 onboardingBody("深圳货主甲", "914403010000123456", "110101197701017777")));
@@ -176,7 +180,8 @@ class OnboardingReviewTest extends ApiTestBase {
 
     @Test
     void samePersonCanBePersonalAccountAndLegalRep() throws Exception {
-        seedShipper("13900000008");
+        Long shipperAccountId = seedShipper("13900000008");
+        seedAttachments(shipperAccountId);
         String token = login("13900000008", DEFAULT_PASSWORD);
         JsonNode submitted = data(postJson("/api/onboarding/submit", token,
                 onboardingBody("同一自然人公司", "914403010000888888", "110101199001010008")));
@@ -207,6 +212,25 @@ class OnboardingReviewTest extends ApiTestBase {
         assertTrue(data(getJson("/api/onboarding", token)).isNull());
     }
 
+    @Test
+    void onboardingRejectsAttachmentUploadedByAnotherAccount() throws Exception {
+        Long shipperAccountId = seedShipper("13900000010");
+        Long otherAccountId = seedShipper("13900000011");
+        String token = login("13900000010", DEFAULT_PASSWORD);
+        String forgedPath = "/files/onboarding/pdf/20261107/forged.pdf";
+        insertFile(forgedPath, otherAccountId);
+
+        Map<String, Object> body = onboardingBody("伪造附件货主", "911101010000654321", LEGAL_REP_ID_NO);
+        body.put("attachmentPaths", List.of(forgedPath));
+        postJson("/api/onboarding/submit", token, body)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("附件不存在或无权使用")));
+
+        assertTrue(data(getJson("/api/onboarding", token)).isNull());
+        assertEquals(0L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM biz_onboarding WHERE account_id = ?", Long.class, shipperAccountId));
+    }
+
     private Map<String, Object> onboardingBody(String subjectName, String creditCode, String legalRepIdNo) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("subjectName", subjectName);
@@ -223,6 +247,29 @@ class OnboardingReviewTest extends ApiTestBase {
         body.put("attachmentPaths", List.of("/files/onboarding/pdf/20261107/a.pdf",
                 "/files/onboarding/image/20261107/b.jpg"));
         return body;
+    }
+
+    /**
+     * 写入两条由指定账号上传的入驻附件记录。
+     *
+     * @param uploaderAccountId 上传账号 ID
+     */
+    private void seedAttachments(Long uploaderAccountId) {
+        insertFile("/files/onboarding/pdf/20261107/a.pdf", uploaderAccountId);
+        insertFile("/files/onboarding/image/20261107/b.jpg", uploaderAccountId);
+    }
+
+    /**
+     * 写入一条已上传文件记录。
+     *
+     * @param filePath 文件相对路径
+     * @param uploaderAccountId 上传账号 ID
+     */
+    private void insertFile(String filePath, Long uploaderAccountId) {
+        jdbcTemplate.update("INSERT INTO sys_file (file_path, original_name, uploader_account_id, "
+                        + "file_module, file_type, create_time) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)",
+                filePath, filePath.substring(filePath.lastIndexOf('/') + 1), uploaderAccountId,
+                "onboarding", "file");
     }
 
     private String registerAndLogin(String role, String phone, String name, String password) throws Exception {

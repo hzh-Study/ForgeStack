@@ -60,6 +60,12 @@ class DriverRecordsTest extends FreightApiTestBase {
                 Map.of("node", "ARRIVE", "content", "收货方已签字确认"))
                 .andExpect(status().isOk());
 
+        JsonNode waybillDetail = data(getJson("/api/logistics/waybills/" + orderId, logisticsToken));
+        assertEquals(1, waybillDetail.path("tasks").size());
+        JsonNode waybillTask = waybillDetail.path("tasks").get(0);
+        assertEquals(1, waybillTask.path("remarks").size());
+        assertEquals("收货方已签字确认", waybillTask.path("remarks").get(0).path("content").asText());
+
         String waybillNo = data(getJson("/api/shipper/orders/" + orderId, shipperToken)).path("waybillNo").asText();
         JsonNode page = data(getJson("/api/driver/records", driverToken, Map.of("pageSize", "10")));
         assertEquals(3, page.path("total").asLong());

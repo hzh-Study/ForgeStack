@@ -283,6 +283,27 @@ class OrderLifecycleTest extends ApiTestBase {
                 .andExpect(jsonPath("$.message", containsString("仅已下架订单")));
     }
 
+    @Test
+    void reminderHoursAreConfigurableFromPlatformParams() throws Exception {
+        seedApprovedShipper("13900000318");
+        String shipperToken = login("13900000318", DEFAULT_PASSWORD);
+        jdbcTemplate.update("UPDATE sys_platform_param SET param_value = ? WHERE param_key = ?",
+                "12", "order.reminder.hours.2d");
+
+        clock.setNow(LocalDateTime.of(2026, 11, 7, 8, 0));
+        long orderId = publishOrder(shipperToken);
+
+        clock.advanceMinutes(216 * 60);
+        orderReminderService.scanOrders();
+        assertEquals(0L, reminderCount(orderId, "T_MINUS_2D"));
+        assertEquals(1L, reminderCount(orderId, "T_MINUS_1D"));
+
+        clock.advanceMinutes(12 * 60);
+        orderReminderService.scanOrders();
+        assertEquals(1L, reminderCount(orderId, "T_MINUS_2D"));
+        assertEquals(1L, reminderCount(orderId, "T_MINUS_1D"));
+    }
+
     private String orderStatus(String token, long orderId) throws Exception {
         return data(getJson("/api/shipper/orders/" + orderId, token)).path("orderStatus").asText();
     }

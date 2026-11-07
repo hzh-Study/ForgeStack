@@ -536,5 +536,8 @@ INSERT INTO sys_dict_item (dict_type, item_code, item_name, parent_code, sort_no
 INSERT INTO sys_platform_param (param_key, param_value, description, create_time) VALUES
 ('order.default.valid.hours', '240', '订单默认有效期小时数，默认 10 天', '2026-11-07 09:00:00'),
 ('reimbursement.monthly.quota', '5000', '司机月度报销默认额度（元）', '2026-11-07 09:00:00'),
-('checkin.window.minutes', '20', '打卡按时判定与重复提交窗口分钟数', '2026-11-07 09:00:00');
+('checkin.window.minutes', '20', '打卡按时判定与重复提交窗口分钟数', '2026-11-07 09:00:00'),
+('order.reminder.hours.2d', '48', '订单到期前 2 天提醒小时数', '2026-11-07 09:00:00'),
+('order.reminder.hours.1d', '24', '订单到期前 1 天提醒小时数', '2026-11-07 09:00:00'),
+('order.reminder.hours.1h', '1', '订单到期前 1 小时提醒小时数', '2026-11-07 09:00:00');
 

@@ -35,16 +35,6 @@ public class ConversationMessageVO {
     private String content;
 
     /**
-     * 是否已读：1 是，0 否
-     */
-    private Integer isRead;
-
-    /**
-     * 读取时间
-     */
-    private LocalDateTime readTime;
-
-    /**
      * 发送时间
      */
     private LocalDateTime createTime;

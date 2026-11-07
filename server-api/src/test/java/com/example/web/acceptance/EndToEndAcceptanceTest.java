@@ -238,7 +238,10 @@ class EndToEndAcceptanceTest extends FreightApiTestBase {
         JsonNode conversation = data(getJson("/api/messages/conversations/" + conversationId,
                 winner.token, Map.of("pageNum", "1", "pageSize", "10")));
         assertEquals(1, conversation.path("total").asLong());
-        assertEquals(1, conversation.path("records").get(0).path("isRead").asInt());
+        assertEquals("提货时间已确认，请按时到达装货点",
+                conversation.path("records").get(0).path("content").asText());
+        assertFalse(conversation.path("records").get(0).has("isRead"));
+        assertFalse(conversation.path("records").get(0).has("readTime"));
         assertEquals(0, data(getJson("/api/messages/unread-count", winner.token))
                 .path("conversationUnread").asInt());
         postJson("/api/messages/conversations", shipperToken,
