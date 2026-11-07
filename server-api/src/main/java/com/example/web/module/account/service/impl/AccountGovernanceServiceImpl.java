@@ -53,11 +53,13 @@ public class AccountGovernanceServiceImpl implements AccountGovernanceService {
     private final TaskMapper taskMapper;
     private final OrderMapper orderMapper;
     private final OperationLogService operationLogService;
+    private final com.example.web.module.message.service.NotificationService notificationService;
 
     public AccountGovernanceServiceImpl(AccountMapper accountMapper, AdminMapper adminMapper,
                                         ShipperMapper shipperMapper, LogisticsMapper logisticsMapper,
                                         DriverMapper driverMapper, TaskMapper taskMapper, OrderMapper orderMapper,
-                                        OperationLogService operationLogService) {
+                                        OperationLogService operationLogService,
+                                        com.example.web.module.message.service.NotificationService notificationService) {
         this.accountMapper = accountMapper;
         this.adminMapper = adminMapper;
         this.shipperMapper = shipperMapper;
@@ -66,6 +68,7 @@ public class AccountGovernanceServiceImpl implements AccountGovernanceService {
         this.taskMapper = taskMapper;
         this.orderMapper = orderMapper;
         this.operationLogService = operationLogService;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -135,6 +138,8 @@ public class AccountGovernanceServiceImpl implements AccountGovernanceService {
         }
         validateNoOngoingBusiness(account);
         updateStatus(accountId, EnableStatusEnum.DISABLED);
+        notificationService.send(accountId, com.example.web.module.message.enums.NoticeTypeEnum.ACCOUNT_DISABLED,
+                "账号已停用", "你的账号已被平台管理员停用，如有疑问请联系平台", null, null);
         LoginAccountUtil.logout(accountId);
         operationLogService.record(operatorAccountId, AccountRoleEnum.ADMIN, OperationActionEnum.ACCOUNT_DISABLE,
                 "ACCOUNT", accountId, "停用账号：" + account.getUsername());

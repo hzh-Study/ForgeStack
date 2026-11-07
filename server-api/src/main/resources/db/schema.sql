@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS biz_realname (
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
 );
-CREATE UNIQUE INDEX uk_biz_realname_id_no ON biz_realname (id_type, id_no);
+CREATE UNIQUE INDEX uk_biz_realname_id_no ON biz_realname (realname_type, id_type, id_no);
 CREATE INDEX idx_biz_realname_account ON biz_realname (account_id);
 
 CREATE TABLE IF NOT EXISTS biz_onboarding (

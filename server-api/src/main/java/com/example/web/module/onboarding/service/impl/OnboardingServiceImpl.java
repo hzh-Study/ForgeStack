@@ -108,6 +108,7 @@ public class OnboardingServiceImpl implements OnboardingService {
 
         String legalRepIdNo = dto.getLegalRepIdNo().trim();
         Realname legalRepExisting = realnameMapper.selectOne(new LambdaQueryWrapper<Realname>()
+                .eq(Realname::getRealnameType, RealnameTypeEnum.LEGAL_REP.getCode())
                 .eq(Realname::getIdType, dto.getLegalRepIdType().getCode())
                 .eq(Realname::getIdNo, legalRepIdNo));
         boolean reuseOwnLegalRep = legalRepExisting != null

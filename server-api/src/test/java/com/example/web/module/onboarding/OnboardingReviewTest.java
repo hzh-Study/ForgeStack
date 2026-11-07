@@ -175,6 +175,21 @@ class OnboardingReviewTest extends ApiTestBase {
     }
 
     @Test
+    void samePersonCanBePersonalAccountAndLegalRep() throws Exception {
+        seedShipper("13900000008");
+        String token = login("13900000008", DEFAULT_PASSWORD);
+        JsonNode submitted = data(postJson("/api/onboarding/submit", token,
+                onboardingBody("同一自然人公司", "914403010000888888", "110101199001010008")));
+        assertEquals("PENDING", submitted.path("auditStatus").asText());
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM biz_realname WHERE realname_type = 'PERSONAL' AND id_no = ?",
+                Long.class, "110101199001010008"));
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM biz_realname WHERE realname_type = 'LEGAL_REP' AND id_no = ?",
+                Long.class, "110101199001010008"));
+    }
+
+    @Test
     void enterpriseAndLegalRepVerificationFailuresBlockSubmission() throws Exception {
         seedShipper("13900000007");
         String token = login("13900000007", DEFAULT_PASSWORD);

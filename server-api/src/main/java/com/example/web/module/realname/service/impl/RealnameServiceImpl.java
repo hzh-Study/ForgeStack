@@ -8,6 +8,8 @@ import com.example.web.common.time.ClockService;
 import com.example.web.common.util.MaskUtil;
 import com.example.web.exception.BusinessException;
 import com.example.web.module.account.entity.Account;
+import com.example.web.module.message.enums.NoticeTypeEnum;
+import com.example.web.module.message.service.NotificationService;
 import com.example.web.module.realname.adapter.RealnameVerificationAdapter;
 import com.example.web.module.realname.adapter.RealnameVerifyResult;
 import com.example.web.module.realname.dto.RealnameQueryDTO;
@@ -36,13 +38,16 @@ public class RealnameServiceImpl implements RealnameService {
     private final RealnameVerificationAdapter verificationAdapter;
     private final CurrentAccountService currentAccountService;
     private final ClockService clockService;
+    private final NotificationService notificationService;
 
     public RealnameServiceImpl(RealnameMapper realnameMapper, RealnameVerificationAdapter verificationAdapter,
-                               CurrentAccountService currentAccountService, ClockService clockService) {
+                               CurrentAccountService currentAccountService, ClockService clockService,
+                               NotificationService notificationService) {
         this.realnameMapper = realnameMapper;
         this.verificationAdapter = verificationAdapter;
         this.currentAccountService = currentAccountService;
         this.clockService = clockService;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -61,6 +66,7 @@ public class RealnameServiceImpl implements RealnameService {
         }
         String idNo = dto.getIdNo().trim();
         Realname identityOwner = realnameMapper.selectOne(new LambdaQueryWrapper<Realname>()
+                .eq(Realname::getRealnameType, RealnameTypeEnum.PERSONAL.getCode())
                 .eq(Realname::getIdType, dto.getIdType().getCode())
                 .eq(Realname::getIdNo, idNo));
         if (identityOwner != null && !Objects.equals(identityOwner.getAccountId(), account.getId())) {
@@ -110,6 +116,11 @@ public class RealnameServiceImpl implements RealnameService {
             entity.setCreateTime(now);
             realnameMapper.insert(entity);
         }
+        if (verifyResult.passed()) {
+            return toDetailVO(entity);
+        }
+        notificationService.send(account.getId(), NoticeTypeEnum.REALNAME_FAILED, "实名校验未通过",
+                verifyResult.failReason(), null, null);
         return toDetailVO(entity);
     }
 
