@@ -3,6 +3,7 @@ package com.example.web.module.order.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.web.exception.BusinessException;
 import com.example.web.exception.ForbiddenException;
+import com.example.web.module.checkin.vo.TaskCheckinSummaryVO;
 import com.example.web.module.driver.entity.Driver;
 import com.example.web.module.driver.mapper.DriverMapper;
 import com.example.web.module.onboarding.entity.Onboarding;
@@ -17,6 +18,7 @@ import com.example.web.module.order.mapper.OrderMapper;
 import com.example.web.module.order.vo.OrderTaskSummaryVO;
 import com.example.web.module.task.entity.Task;
 import com.example.web.module.task.mapper.TaskMapper;
+import com.example.web.module.task.service.TaskQueryService;
 import com.example.web.module.vehicle.entity.Vehicle;
 import com.example.web.module.vehicle.mapper.VehicleMapper;
 import java.util.Collections;
@@ -38,9 +40,10 @@ public class OrderQueryService {
     private final DriverMapper driverMapper;
     private final VehicleMapper vehicleMapper;
     private final OnboardingMapper onboardingMapper;
+    private final TaskQueryService taskQueryService;
 
     /**
-     * 注入订单、货物、地址、任务与资质的查询依赖。
+     * 注入订单、货物、地址、任务、资质与打卡查询依赖。
      *
      * @param orderMapper 订单数据访问
      * @param orderGoodsMapper 货物明细数据访问
@@ -49,11 +52,12 @@ public class OrderQueryService {
      * @param driverMapper 司机数据访问
      * @param vehicleMapper 车辆数据访问
      * @param onboardingMapper 入驻数据访问
+     * @param taskQueryService 任务与打卡查询公共服务
      */
     public OrderQueryService(OrderMapper orderMapper, OrderGoodsMapper orderGoodsMapper,
                              OrderAddressMapper orderAddressMapper, TaskMapper taskMapper,
                              DriverMapper driverMapper, VehicleMapper vehicleMapper,
-                             OnboardingMapper onboardingMapper) {
+                             OnboardingMapper onboardingMapper, TaskQueryService taskQueryService) {
         this.orderMapper = orderMapper;
         this.orderGoodsMapper = orderGoodsMapper;
         this.orderAddressMapper = orderAddressMapper;
@@ -61,6 +65,7 @@ public class OrderQueryService {
         this.driverMapper = driverMapper;
         this.vehicleMapper = vehicleMapper;
         this.onboardingMapper = onboardingMapper;
+        this.taskQueryService = taskQueryService;
     }
 
     /**
@@ -147,7 +152,10 @@ public class OrderQueryService {
         }
         Map<Long, String> driverNames = loadDriverNames(tasks);
         Map<Long, String> plateNos = loadVehiclePlateNos(tasks);
-        return tasks.stream().map(task -> toTaskSummary(task, driverNames, plateNos)).toList();
+        Map<Long, TaskCheckinSummaryVO> checkinSummaries = taskQueryService.getCheckinSummaries(tasks.stream()
+                .map(Task::getId).toList());
+        return tasks.stream().map(task -> toTaskSummary(task, driverNames, plateNos,
+                checkinSummaries.get(task.getId()))).toList();
     }
 
     /**
@@ -198,21 +206,25 @@ public class OrderQueryService {
     }
 
     /**
-     * 将任务实体转换为概要 VO。
+     * 将任务实体转换为概要 VO，并附带出发与到达打卡版本。
      *
      * @param task 任务实体
      * @param driverNames 司机姓名映射
      * @param plateNos 车辆车牌映射
+     * @param summary 打卡汇总
      * @return 任务概要
      */
     private OrderTaskSummaryVO toTaskSummary(Task task, Map<Long, String> driverNames,
-                                             Map<Long, String> plateNos) {
+                                             Map<Long, String> plateNos, TaskCheckinSummaryVO summary) {
         OrderTaskSummaryVO vo = new OrderTaskSummaryVO();
         vo.setTaskId(task.getId());
         vo.setTaskNo(task.getTaskNo());
         vo.setTaskStatus(task.getTaskStatus());
         vo.setDriverName(task.getDriverAccountId() == null ? null : driverNames.get(task.getDriverAccountId()));
         vo.setVehiclePlateNo(task.getVehicleId() == null ? null : plateNos.get(task.getVehicleId()));
+        vo.setDepartCheckins(summary == null ? Collections.emptyList() : summary.getDepartVersions());
+        vo.setArriveCheckins(summary == null ? Collections.emptyList() : summary.getArriveVersions());
+        vo.setRemarks(summary == null ? Collections.emptyList() : summary.getRemarks());
         return vo;
     }
 }
