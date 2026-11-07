@@ -22,6 +22,8 @@ import com.example.web.module.order.mapper.OrderGoodsMapper;
 import com.example.web.module.order.mapper.OrderMapper;
 import com.example.web.module.order.service.OrderQueryService;
 import com.example.web.module.order.vo.OrderAddressVO;
+import com.example.web.module.shipper.entity.Shipper;
+import com.example.web.module.shipper.mapper.ShipperMapper;
 import com.example.web.module.task.dto.GoodsIdsDTO;
 import com.example.web.module.task.entity.Task;
 import com.example.web.module.task.entity.TaskEvent;
@@ -73,6 +75,7 @@ public class WaybillServiceImpl implements WaybillService {
     private final TaskEventMapper taskEventMapper;
     private final DriverMapper driverMapper;
     private final VehicleMapper vehicleMapper;
+    private final ShipperMapper shipperMapper;
     private final BusinessNoGenerator businessNoGenerator;
     private final ClockService clockService;
 
@@ -81,7 +84,9 @@ public class WaybillServiceImpl implements WaybillService {
                               OrderGoodsMapper orderGoodsMapper, OrderAddressMapper orderAddressMapper,
                               TaskMapper taskMapper, TaskGoodsMapper taskGoodsMapper,
                               TaskEventMapper taskEventMapper, DriverMapper driverMapper,
-                              VehicleMapper vehicleMapper, BusinessNoGenerator businessNoGenerator,
+                              VehicleMapper vehicleMapper,
+                              ShipperMapper shipperMapper,
+                              BusinessNoGenerator businessNoGenerator,
                               ClockService clockService) {
         this.currentAccountService = currentAccountService;
         this.orderQueryService = orderQueryService;
@@ -94,6 +99,7 @@ public class WaybillServiceImpl implements WaybillService {
         this.taskEventMapper = taskEventMapper;
         this.driverMapper = driverMapper;
         this.vehicleMapper = vehicleMapper;
+        this.shipperMapper = shipperMapper;
         this.businessNoGenerator = businessNoGenerator;
         this.clockService = clockService;
     }
@@ -168,6 +174,12 @@ public class WaybillServiceImpl implements WaybillService {
         vo.setOrderNo(order.getOrderNo());
         vo.setWaybillNo(order.getWaybillNo());
         vo.setOrderStatus(order.getOrderStatus());
+        vo.setShipperAccountId(order.getShipperAccountId());
+        Shipper shipper = shipperMapper.selectOne(new LambdaQueryWrapper<Shipper>()
+                .eq(Shipper::getAccountId, order.getShipperAccountId()));
+        if (shipper != null) {
+            vo.setShipperName(shipper.getName());
+        }
         vo.setFreightAmount(order.getFreightAmount());
         vo.setRemark(order.getRemark());
         vo.setPickupTime(order.getPickupTime());

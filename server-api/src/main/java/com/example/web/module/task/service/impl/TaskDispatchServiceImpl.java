@@ -799,6 +799,8 @@ public class TaskDispatchServiceImpl implements TaskDispatchService {
      * @param order 订单实体
      */
     private void fillParties(DriverTaskDetailVO vo, Order order) {
+        vo.setShipperAccountId(order.getShipperAccountId());
+        vo.setLogisticsAccountId(order.getLogisticsAccountId());
         Shipper shipper = shipperMapper.selectOne(new LambdaQueryWrapper<Shipper>()
                 .eq(Shipper::getAccountId, order.getShipperAccountId()));
         if (shipper != null) {

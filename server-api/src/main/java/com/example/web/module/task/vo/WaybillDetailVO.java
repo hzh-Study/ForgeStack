@@ -31,6 +31,16 @@ public class WaybillDetailVO {
     private String orderStatus;
 
     /**
+     * 货主账号 ID，用于物流公司与货主发起会话
+     */
+    private Long shipperAccountId;
+
+    /**
+     * 货主名称
+     */
+    private String shipperName;
+
+    /**
      * 运费报价
      */
     private Double freightAmount;

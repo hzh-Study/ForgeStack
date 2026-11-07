@@ -42,9 +42,19 @@ public class DriverTaskDetailVO {
     private String waybillNo;
 
     /**
+     * 货主账号 ID，用于向所属物流公司发起会话或展示业务关系
+     */
+    private Long shipperAccountId;
+
+    /**
      * 货主名称
      */
     private String shipperName;
+
+    /**
+     * 物流公司账号 ID，用于司机与所属公司发起会话
+     */
+    private Long logisticsAccountId;
 
     /**
      * 物流公司名称
