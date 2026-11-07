@@ -34,3 +34,17 @@
 - 后端、后台、前台必须保持工程独立，不能混放代码。
 - 前端统一使用 JavaScript，不使用 TypeScript。
 - 不需要 Swagger、OpenAPI、Knife4j。
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live as markdown files under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage roles, recorded as `Status:` lines in issue files. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` at the repo root plus `docs/adr/`. See `docs/agents/domain.md`.
