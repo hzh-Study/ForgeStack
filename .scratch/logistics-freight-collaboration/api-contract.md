@@ -61,7 +61,7 @@
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| POST | `/api/logistics/drivers` | body `{name, phone, password, licenseNo, licenseExpireDate, email, vehicleId}`；账号 `mustChangePassword=1` |
+| POST | `/api/logistics/drivers` | body `{name, phone, password, idType, idNo, licenseNo, licenseExpireDate, email, vehicleId}`；创建账号时同步完成司机个人实名，账号 `mustChangePassword=1` |
 | GET | `/api/logistics/drivers` | 参数 `keyword`、`pageNum`、`pageSize` |
 | POST | `/api/logistics/drivers/{driverId}/binding` | body `{vehicleId}`；司机无待执行或运输中任务时才允许，留痕 |
 | GET | `/api/logistics/vehicles` | 本公司车辆 |
