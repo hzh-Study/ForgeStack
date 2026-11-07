@@ -21,14 +21,21 @@ import com.example.web.module.governance.enums.OperationActionEnum;
 import com.example.web.module.governance.service.OperationLogService;
 import com.example.web.module.logistics.entity.Logistics;
 import com.example.web.module.logistics.mapper.LogisticsMapper;
+import com.example.web.module.order.entity.Order;
+import com.example.web.module.order.enums.OrderStatusEnum;
+import com.example.web.module.order.mapper.OrderMapper;
 import com.example.web.module.shipper.entity.Shipper;
 import com.example.web.module.shipper.mapper.ShipperMapper;
+import com.example.web.module.task.entity.Task;
+import com.example.web.module.task.enums.TaskStatusEnum;
+import com.example.web.module.task.mapper.TaskMapper;
 import com.example.web.security.LoginAccountUtil;
 import com.example.web.util.PasswordUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,16 +50,21 @@ public class AccountGovernanceServiceImpl implements AccountGovernanceService {
     private final ShipperMapper shipperMapper;
     private final LogisticsMapper logisticsMapper;
     private final DriverMapper driverMapper;
+    private final TaskMapper taskMapper;
+    private final OrderMapper orderMapper;
     private final OperationLogService operationLogService;
 
     public AccountGovernanceServiceImpl(AccountMapper accountMapper, AdminMapper adminMapper,
                                         ShipperMapper shipperMapper, LogisticsMapper logisticsMapper,
-                                        DriverMapper driverMapper, OperationLogService operationLogService) {
+                                        DriverMapper driverMapper, TaskMapper taskMapper, OrderMapper orderMapper,
+                                        OperationLogService operationLogService) {
         this.accountMapper = accountMapper;
         this.adminMapper = adminMapper;
         this.shipperMapper = shipperMapper;
         this.logisticsMapper = logisticsMapper;
         this.driverMapper = driverMapper;
+        this.taskMapper = taskMapper;
+        this.orderMapper = orderMapper;
         this.operationLogService = operationLogService;
     }
 
@@ -121,6 +133,7 @@ public class AccountGovernanceServiceImpl implements AccountGovernanceService {
         if (account.getStatus() == EnableStatusEnum.DISABLED) {
             return;
         }
+        validateNoOngoingBusiness(account);
         updateStatus(accountId, EnableStatusEnum.DISABLED);
         LoginAccountUtil.logout(accountId);
         operationLogService.record(operatorAccountId, AccountRoleEnum.ADMIN, OperationActionEnum.ACCOUNT_DISABLE,
@@ -150,6 +163,33 @@ public class AccountGovernanceServiceImpl implements AccountGovernanceService {
             throw new BusinessException("账号不存在");
         }
         return account;
+    }
+
+    /**
+     * 停用前校验账号是否仍有进行中业务，避免产生无人执行的任务或未完成运单。
+     *
+     * @param account 待停用账号
+     */
+    private void validateNoOngoingBusiness(Account account) {
+        if (account.getRole() == AccountRoleEnum.DRIVER) {
+            long count = taskMapper.selectCount(new LambdaQueryWrapper<Task>()
+                    .eq(Task::getDriverAccountId, account.getId())
+                    .in(Task::getTaskStatus, Set.of(TaskStatusEnum.WAIT_EXECUTE.getCode(),
+                            TaskStatusEnum.IN_TRANSPORT.getCode())));
+            if (count > 0) {
+                throw new BusinessException("司机有进行中任务，不能停用");
+            }
+            return;
+        }
+        if (account.getRole() == AccountRoleEnum.LOGISTICS) {
+            long count = orderMapper.selectCount(new LambdaQueryWrapper<Order>()
+                    .eq(Order::getLogisticsAccountId, account.getId())
+                    .in(Order::getOrderStatus, Set.of(OrderStatusEnum.ACCEPTED.getCode(),
+                            OrderStatusEnum.DISPATCHING.getCode(), OrderStatusEnum.IN_PROGRESS.getCode())));
+            if (count > 0) {
+                throw new BusinessException("物流公司有未完成运单，不能停用");
+            }
+        }
     }
 
     private void updateStatus(Long accountId, EnableStatusEnum status) {

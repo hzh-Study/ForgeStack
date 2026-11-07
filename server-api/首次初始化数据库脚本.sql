@@ -311,6 +311,7 @@ CREATE INDEX idx_biz_checkin_remark_task ON biz_checkin_remark (task_id);
 
 CREATE TABLE IF NOT EXISTS biz_reimbursement (
   id BIGINT NOT NULL AUTO_INCREMENT,
+  origin_id BIGINT NULL,
   task_id BIGINT NOT NULL,
   order_id BIGINT NOT NULL,
   driver_account_id BIGINT NOT NULL,

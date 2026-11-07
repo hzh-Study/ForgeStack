@@ -138,6 +138,18 @@ public class OrderQueryService {
     }
 
     /**
+     * 查询订单任务实体，供管理员全链路详情复用。
+     *
+     * @param orderId 订单 ID
+     * @return 任务列表
+     */
+    public List<Task> listOrderTasks(Long orderId) {
+        return taskMapper.selectList(new LambdaQueryWrapper<Task>()
+                .eq(Task::getOrderId, orderId)
+                .orderByAsc(Task::getId));
+    }
+
+    /**
      * 查询订单任务概要，司机姓名与车牌在任务已指派时返回。
      *
      * @param orderId 订单 ID

@@ -16,6 +16,16 @@ public class CheckinVersionVO {
     private Long checkinId;
 
     /**
+     * 任务 ID
+     */
+    private Long taskId;
+
+    /**
+     * 订单 ID
+     */
+    private Long orderId;
+
+    /**
      * 打卡节点
      */
     private String node;

@@ -1,7 +1,9 @@
 package com.example.web.module.task.service;
 
 import com.example.web.module.checkin.entity.Checkin;
+import com.example.web.module.checkin.vo.CheckinVersionVO;
 import com.example.web.module.checkin.vo.TaskCheckinSummaryVO;
+import com.example.web.common.page.PageResult;
 import com.example.web.module.task.entity.Task;
 import java.util.List;
 import java.util.Map;
@@ -77,5 +79,18 @@ public interface TaskQueryService {
      * @return 已分配货物行数
      */
     long countAssignedGoods(Long orderId);
+
+    /**
+     * 管理员分页查询打卡版本，附带照片用途与文件路径，供全平台只读监管复用。
+     *
+     * @param taskId 任务 ID，可为空
+     * @param orderId 订单 ID，可为空
+     * @param node 打卡节点，可为空
+     * @param pageNum 页码
+     * @param pageSize 每页条数
+     * @return 打卡版本分页数据
+     */
+    PageResult<CheckinVersionVO> pageCheckinVersions(Long taskId, Long orderId, String node,
+                                                     Integer pageNum, Integer pageSize);
 
 }

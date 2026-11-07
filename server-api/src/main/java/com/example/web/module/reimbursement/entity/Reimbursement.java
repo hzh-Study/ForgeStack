@@ -21,6 +21,11 @@ public class Reimbursement {
     private Long id;
 
     /**
+     * 首次提交版本 ID，用于串联同一笔报销的历史版本；首次提交时为空
+     */
+    private Long originId;
+
+    /**
      * 运输任务 ID
      */
     private Long taskId;

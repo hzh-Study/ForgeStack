@@ -1,6 +1,8 @@
 package com.example.web.module.task.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.web.common.page.PageResult;
 import com.example.web.exception.BusinessException;
 import com.example.web.exception.ForbiddenException;
 import com.example.web.module.checkin.entity.Checkin;
@@ -192,6 +194,44 @@ public class TaskQueryServiceImpl implements TaskQueryService {
     }
 
     /**
+     * 管理员分页查询打卡版本并附带照片。
+     *
+     * @param taskId 任务 ID，可为空
+     * @param orderId 订单 ID，可为空
+     * @param node 打卡节点，可为空
+     * @param pageNum 页码
+     * @param pageSize 每页条数
+     * @return 打卡版本分页数据
+     */
+    @Override
+    public PageResult<CheckinVersionVO> pageCheckinVersions(Long taskId, Long orderId, String node,
+                                                            Integer pageNum, Integer pageSize) {
+        LambdaQueryWrapper<Checkin> wrapper = new LambdaQueryWrapper<>();
+        if (taskId != null) {
+            wrapper.eq(Checkin::getTaskId, taskId);
+        }
+        if (orderId != null) {
+            wrapper.eq(Checkin::getOrderId, orderId);
+        }
+        if (node != null && !node.isBlank()) {
+            CheckinNodeEnum nodeEnum = CheckinNodeEnum.of(node.trim());
+            if (nodeEnum == null) {
+                throw new BusinessException("打卡节点不正确");
+            }
+            wrapper.eq(Checkin::getNode, nodeEnum.getCode());
+        }
+        wrapper.orderByDesc(Checkin::getId);
+        int currentPage = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        int currentSize = pageSize == null || pageSize < 1 ? 10 : Math.min(pageSize, 100);
+        Page<Checkin> page = checkinMapper.selectPage(new Page<>(currentPage, currentSize), wrapper);
+        Map<Long, List<CheckinPhoto>> photos = loadPhotosByCheckin(page.getRecords());
+        List<CheckinVersionVO> records = page.getRecords().stream()
+                .map(checkin -> toVersionVO(checkin, photos.get(checkin.getId())))
+                .toList();
+        return new PageResult<>(records, page.getTotal(), currentPage, currentSize);
+    }
+
+    /**
      * 批量加载打卡版本下的照片。
      *
      * @param checkins 打卡版本列表
@@ -231,6 +271,8 @@ public class TaskQueryServiceImpl implements TaskQueryService {
     private CheckinVersionVO toVersionVO(Checkin checkin, List<CheckinPhoto> photos) {
         CheckinVersionVO vo = new CheckinVersionVO();
         vo.setCheckinId(checkin.getId());
+        vo.setTaskId(checkin.getTaskId());
+        vo.setOrderId(checkin.getOrderId());
         vo.setNode(checkin.getNode());
         vo.setVersionNo(checkin.getVersionNo());
         vo.setIsValid(checkin.getIsValid());
