@@ -10,6 +10,7 @@ import com.example.web.module.account.mapper.AccountMapper;
 import com.example.web.module.admin.entity.Admin;
 import com.example.web.module.admin.mapper.AdminMapper;
 import com.example.web.module.auth.dto.LoginDTO;
+import com.example.web.module.auth.dto.PasswordResetCodeDTO;
 import com.example.web.module.auth.dto.PasswordResetDTO;
 import com.example.web.module.auth.dto.PasswordResetVerifyDTO;
 import com.example.web.module.auth.dto.RegisterDTO;
@@ -20,11 +21,14 @@ import com.example.web.module.user.entity.User;
 import com.example.web.module.user.mapper.UserMapper;
 import com.example.web.security.LoginAccountUtil;
 import com.example.web.util.PasswordUtil;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,10 +38,29 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthServiceImpl implements AuthService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthServiceImpl.class);
+
     /**
      * 重置密码凭证有效时间，单位为秒。
      */
     private static final long RESET_TOKEN_TTL_SECONDS = 600L;
+
+    /**
+     * 邮箱验证码有效时间，单位为秒。
+     */
+    private static final long RESET_CODE_TTL_SECONDS = 600L;
+
+    /**
+     * 同一账号重新发送验证码的最小间隔，单位为秒。
+     */
+    private static final long RESET_CODE_COOLDOWN_SECONDS = 60L;
+
+    /**
+     * 单个验证码允许的最大错误次数。
+     */
+    private static final int RESET_CODE_MAX_ATTEMPTS = 5;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final AccountMapper accountMapper;
     private final AdminMapper adminMapper;
@@ -47,6 +70,11 @@ public class AuthServiceImpl implements AuthService {
      * 一次性重置凭证仅保存在服务内存中，使用后立即删除。
      */
     private final Map<String, PasswordResetTicket> passwordResetTickets = new ConcurrentHashMap<>();
+
+    /**
+     * 邮箱验证码按账号 ID 保存在服务内存中，验证成功或过期后删除。
+     */
+    private final Map<Long, PasswordResetCodeTicket> passwordResetCodes = new ConcurrentHashMap<>();
 
     public AuthServiceImpl(AccountMapper accountMapper, AdminMapper adminMapper, UserMapper userMapper) {
         this.accountMapper = accountMapper;
@@ -107,7 +135,33 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 校验账号角色及其资料表邮箱，成功后签发十分钟内有效的一次性凭证。
+     * 校验账号、邮箱和角色，生成六位验证码。
+     *
+     * <p>开发环境将验证码输出到后端日志；接入邮件服务后，应替换为真实邮件发送。</p>
+     *
+     * @param dto 验证码发送参数
+     */
+    @Override
+    public void sendPasswordResetCode(PasswordResetCodeDTO dto) {
+        removeExpiredTickets();
+        Account account = getAccountForPasswordReset(dto.getUsername(), dto.getEmail(), dto.getRole());
+        Instant now = Instant.now();
+        PasswordResetCodeTicket existing = passwordResetCodes.get(account.getId());
+        if (existing != null && existing.getResendAt().isAfter(now)) {
+            throw new BusinessException("验证码发送过于频繁，请稍后再试");
+        }
+
+        String code = String.format("%06d", RANDOM.nextInt(1_000_000));
+        passwordResetCodes.put(account.getId(), new PasswordResetCodeTicket(
+                code,
+                now.plusSeconds(RESET_CODE_TTL_SECONDS),
+                now.plusSeconds(RESET_CODE_COOLDOWN_SECONDS)));
+        LOGGER.info("[DEV] password reset code: account={}, code={}, ttl={}s",
+                account.getUsername(), code, RESET_CODE_TTL_SECONDS);
+    }
+
+    /**
+     * 校验账号、邮箱、角色和验证码，成功后签发十分钟内有效的一次性凭证。
      *
      * @param dto 身份校验参数
      * @return 一次性重置凭证
@@ -115,20 +169,21 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public PasswordResetVerifyVO verifyPasswordReset(PasswordResetVerifyDTO dto) {
         removeExpiredTickets();
-        Account account = accountMapper.selectOne(new LambdaQueryWrapper<Account>()
-                .eq(Account::getUsername, dto.getUsername().trim()));
-        if (account == null || account.getRole() != dto.getRole()) {
-            throw new BusinessException("账号或邮箱不匹配");
+        Account account = getAccountForPasswordReset(dto.getUsername(), dto.getEmail(), dto.getRole());
+        PasswordResetCodeTicket codeTicket = passwordResetCodes.get(account.getId());
+        if (codeTicket == null || codeTicket.getExpiresAt().isBefore(Instant.now())) {
+            throw new BusinessException("验证码已过期，请重新获取");
         }
-        if (account.getStatus() != EnableStatusEnum.ENABLED) {
-            throw new BusinessException("账号已禁用");
+        if (!codeTicket.getCode().equals(dto.getCode())) {
+            codeTicket.increaseFailedAttempts();
+            if (codeTicket.getFailedAttempts() >= RESET_CODE_MAX_ATTEMPTS) {
+                passwordResetCodes.remove(account.getId());
+                throw new BusinessException("验证码错误次数过多，请重新获取");
+            }
+            throw new BusinessException("验证码错误");
         }
 
-        String profileEmail = getProfileEmail(account);
-        if (profileEmail == null || !profileEmail.equalsIgnoreCase(dto.getEmail().trim())) {
-            throw new BusinessException("账号或邮箱不匹配");
-        }
-
+        passwordResetCodes.remove(account.getId());
         String resetToken = UUID.randomUUID().toString().replace("-", "");
         passwordResetTickets.put(resetToken,
                 new PasswordResetTicket(account.getId(), Instant.now().plusSeconds(RESET_TOKEN_TTL_SECONDS)));
@@ -155,6 +210,32 @@ public class AuthServiceImpl implements AuthService {
                 .set(Account::getPasswordSalt, salt)
                 .set(Account::getPasswordHash, PasswordUtil.hashPassword(dto.getNewPassword(), salt))
                 .eq(Account::getId, ticket.accountId()));
+        LoginAccountUtil.logout(ticket.accountId());
+    }
+
+    /**
+     * 按账号角色和资料邮箱校验找回密码身份。
+     *
+     * @param username 登录账号
+     * @param email 资料邮箱
+     * @param role 账号角色
+     * @return 统一账号
+     */
+    private Account getAccountForPasswordReset(String username, String email, AccountRoleEnum role) {
+        Account account = accountMapper.selectOne(new LambdaQueryWrapper<Account>()
+                .eq(Account::getUsername, username.trim()));
+        if (account == null || account.getRole() != role) {
+            throw new BusinessException("账号或邮箱不匹配");
+        }
+        if (account.getStatus() != EnableStatusEnum.ENABLED) {
+            throw new BusinessException("账号已禁用");
+        }
+
+        String profileEmail = getProfileEmail(account);
+        if (profileEmail == null || !profileEmail.equalsIgnoreCase(email.trim())) {
+            throw new BusinessException("账号或邮箱不匹配");
+        }
+        return account;
     }
 
     /**
@@ -179,11 +260,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 清理已过期凭证，避免长期占用服务内存。
+     * 清理已过期的重置凭证和验证码，避免长期占用服务内存。
      */
     private void removeExpiredTickets() {
         Instant now = Instant.now();
         passwordResetTickets.entrySet().removeIf(entry -> entry.getValue().expiresAt().isBefore(now));
+        passwordResetCodes.entrySet().removeIf(entry -> entry.getValue().getExpiresAt().isBefore(now));
     }
 
     /**
@@ -193,5 +275,45 @@ public class AuthServiceImpl implements AuthService {
      * @param expiresAt 过期时间
      */
     private record PasswordResetTicket(Long accountId, Instant expiresAt) {
+    }
+
+    /**
+     * 邮箱验证码记录。
+     */
+    private static final class PasswordResetCodeTicket {
+
+        private final String code;
+
+        private final Instant expiresAt;
+
+        private final Instant resendAt;
+
+        private int failedAttempts;
+
+        private PasswordResetCodeTicket(String code, Instant expiresAt, Instant resendAt) {
+            this.code = code;
+            this.expiresAt = expiresAt;
+            this.resendAt = resendAt;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public Instant getExpiresAt() {
+            return expiresAt;
+        }
+
+        public Instant getResendAt() {
+            return resendAt;
+        }
+
+        public int getFailedAttempts() {
+            return failedAttempts;
+        }
+
+        public void increaseFailedAttempts() {
+            failedAttempts++;
+        }
     }
 }

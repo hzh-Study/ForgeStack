@@ -89,6 +89,7 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("原密码错误");
         }
         updatePassword(account.getId(), dto.getNewPassword());
+        LoginAccountUtil.logout(account.getId());
     }
 
     /**
@@ -150,9 +151,13 @@ public class UserServiceImpl implements UserService {
     @Transactional(rollbackFor = Exception.class)
     public void updateUser(UserUpdateDTO dto) {
         User user = getExistingUser(dto.getId());
+        EnableStatusEnum status = normalizeStatus(dto.getStatus());
         getUserAccount(user.getAccountId());
-        updateAccountStatus(user.getAccountId(), normalizeStatus(dto.getStatus()));
+        updateAccountStatus(user.getAccountId(), status);
         updateUserProfile(user.getId(), dto.getNickname(), dto.getPhone(), dto.getEmail(), dto.getAvatar());
+        if (status == EnableStatusEnum.DISABLED) {
+            LoginAccountUtil.logout(user.getAccountId());
+        }
     }
 
     /**
@@ -167,6 +172,7 @@ public class UserServiceImpl implements UserService {
         getUserAccount(user.getAccountId());
         userMapper.deleteById(id);
         accountMapper.deleteById(user.getAccountId());
+        LoginAccountUtil.logout(user.getAccountId());
     }
 
     /**
@@ -179,6 +185,7 @@ public class UserServiceImpl implements UserService {
         User user = getExistingUser(dto.getId());
         getUserAccount(user.getAccountId());
         updatePassword(user.getAccountId(), dto.getNewPassword());
+        LoginAccountUtil.logout(user.getAccountId());
     }
 
     private Account createAccount(String username, EnableStatusEnum status) {

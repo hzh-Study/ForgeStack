@@ -10,40 +10,63 @@
 |------|------|--------|------|
 | 后端 | `server-api` | SpringBoot + MyBatis-Plus + Sa-Token + MySQL | 统一返回、全局异常、JWT 登录、管理员/用户账号体系、本地文件存储 |
 | 后台管理端 | `backend-ui` | Vue3 + Element Plus + Vite + Pinia + Tailwind CSS | 登录、基础布局、管理员与用户管理 |
-| 前台用户端 | `frontend-ui` | Vue3 + Vite + Pinia + Tailwind CSS | 首页壳、注册登录、个人中心壳 |
+| 前台用户端 | `frontend-ui` | Vue3 + Vite + Pinia + Tailwind CSS | 首页、注册登录、顶部个人资料/密码修改 |
 | 小程序与 APP | `uniapp-ui` | uni-app（Vue3）+ uni-ui + Pinia | 微信小程序与 APP 双端，Vite CLI 工程 |
 
 各端相互独立，均可单独启动、构建和联调；后端地址统一通过各端 `.env` 的 `VITE_API_BASE_URL` 配置（默认 `http://127.0.0.1:7245`）。
 
 ## 快速开始
 
+### 0. 环境要求
+
+- JDK 17 及以上。
+- Maven 3.9 及以上；仓库自带 `server-api/mvnw`，无需全局安装 Maven。
+- Node.js 18 及以上、npm 9 及以上。
+- MySQL 5.7 或 8.0。
+
 ### 1. 初始化数据库
 
 MySQL 中创建数据库 `base`（utf8mb4），执行 `server-api/首次初始化数据库脚本.sql`：
 
-- 内置演示账号：`admin`（管理员）、`user`（用户）。
-- 忘记初始密码时，可按 `PasswordUtil` 的摘要规则 `SHA-256(密码:盐)` 生成新摘要更新 `sys_account` 表，或部署后通过修改密码接口重置。
+- 内置演示账号：`admin`（管理员）、`user`（用户），初始密码均为 `123456789`；首次部署后请立即修改。
+- 忘记初始密码时，可按 `PasswordUtil` 的摘要规则 `SHA-256(密码:盐)` 生成新摘要更新 `sys_account` 表，或通过找回密码流程重置。
 
 ### 2. 启动后端
 
 ```bash
 cd server-api
-mvn spring-boot:run
+./mvnw spring-boot:run
+# Windows PowerShell: .\mvnw.cmd spring-boot:run
+# Linux/macOS 首次使用若提示权限不足：chmod +x mvnw
 ```
 
-端口 `7245`；数据库连接账号密码按 `src/main/resources/application.yml` 修改（默认本机 `root/123456`）。
+端口 `7245`。首次启动前可按需设置以下环境变量，未设置时使用括号中的默认值：
+
+| 变量 | 说明 |
+|------|------|
+| `DB_HOST` / `DB_PORT` / `DB_NAME` | 数据库地址、端口、库名（`localhost` / `3306` / `base`） |
+| `DB_USERNAME` / `DB_PASSWORD` | 数据库账号密码（`root` / `123456`） |
+| `JWT_SECRET` | JWT 密钥；未设置时自动生成并保存到 `~/.forgestack/jwt-secret`，生产环境必须显式设置 |
+| `SA_TOKEN_TIMEOUT` | Token 有效期秒数（`7200`，即 2 小时） |
+| `SA_TOKEN_ACTIVE_TIMEOUT` | 无操作超时秒数（`1800`，即 30 分钟） |
+| `SERVER_PORT` | 后端端口（`7245`） |
+| `CORS_ALLOWED_ORIGIN_PATTERNS` | 允许跨域的来源，逗号分隔（默认放行本机 `localhost` / `127.0.0.1` 任意端口） |
+| `FILE_MAX_SIZE` / `FILE_MAX_SIZE_BYTES` | 单文件上限（`10MB` / `10485760` 字节） |
+| `FILE_ALLOWED_EXTENSIONS` | 允许上传的扩展名，逗号分隔（默认图片、Office、PDF、压缩包和 txt） |
+
+找回密码需要邮箱验证码。开发环境验证码会输出到后端日志，关键字为 `[DEV] password reset code`；生产环境应接入真实邮件发送服务。登录成功后可通过 `POST /auth/logout` 注销服务端会话。
 
 ### 3. 启动管理端 / 用户端
 
 ```bash
 # 后台管理端
 cd backend-ui
-npm install
+npm ci
 npm run dev
 
 # 前台用户端
 cd frontend-ui
-npm install
+npm ci
 npm run dev
 ```
 
@@ -51,7 +74,7 @@ npm run dev
 
 ```bash
 cd uniapp-ui
-npm install
+npm ci
 npm run dev:mp-weixin     # 开发构建，产物 dist/dev/mp-weixin
 npm run build:mp-weixin   # 发行构建，产物 dist/build/mp-weixin
 ```

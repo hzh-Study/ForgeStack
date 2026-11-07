@@ -1,6 +1,7 @@
 package com.example.web.module.auth.service;
 
 import com.example.web.module.auth.dto.LoginDTO;
+import com.example.web.module.auth.dto.PasswordResetCodeDTO;
 import com.example.web.module.auth.dto.PasswordResetDTO;
 import com.example.web.module.auth.dto.PasswordResetVerifyDTO;
 import com.example.web.module.auth.dto.RegisterDTO;
@@ -28,7 +29,14 @@ public interface AuthService {
     void registerUser(RegisterDTO dto);
 
     /**
-     * 校验账号、邮箱和角色并签发一次性重置凭证。
+     * 校验账号、邮箱和角色，发送找回密码验证码。
+     *
+     * @param dto 验证码发送参数
+     */
+    void sendPasswordResetCode(PasswordResetCodeDTO dto);
+
+    /**
+     * 校验账号、邮箱、角色和验证码，签发一次性重置凭证。
      *
      * @param dto 身份校验参数
      * @return 一次性重置凭证

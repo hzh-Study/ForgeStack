@@ -35,7 +35,8 @@
 
 - uni-app CLI 模板锁定的 vue 版本（当前 3.4.21）不允许单独升级：`@dcloudio/uni-cli-shared` 精确依赖对应版本的 `@vue/server-renderer`，强行升级会产生双 vue 副本。
 - Pinia 必须使用兼容 vue 3.4 的版本（当前固定 `pinia@2.2.8`），禁止安装要求 vue ≥ 3.5 的 pinia 版本（2.3+ / 3.x）。
-- 工程根目录必须提供 `.npmrc` 并开启 `legacy-peer-deps=true`：uni-app 锁版 vue 与 pinia 面向 vue2 的可选 peer 依赖链在 npm 严格解析下冲突，该配置保证克隆仓库后 `npm install` 可复现。
+- 工程根目录必须提供 `.npmrc` 并开启 `legacy-peer-deps=true`：uni-app 锁版 vue 与 pinia 面向 vue2 的可选 peer 依赖链在 npm 严格解析下冲突，该配置保证克隆仓库后可复现安装。
+- 工程必须提交 `package-lock.json`；克隆后优先执行 `npm ci`，需要新增依赖时再执行 `npm install` 并同步提交锁文件。
 - SCSS 编译器固定 `sass@1.78.0`：更高版本会产生 `@import` 和 legacy JS API 弃用告警，污染构建输出。
 
 工程根目录必须提供 `.env` 配置文件，后端地址统一写入：
@@ -377,7 +378,8 @@ export function normalizeDemoListItem(item) {
 - 登录页作为一级独立页面放在主包，例如 `pages/login/login`。
 - `App.vue` 的 `onLaunch` 读取本地 Token 并调用当前用户信息接口校验；接口失败、Token 失效、用户不存在或被禁用时，必须清理 Token 和登录态，再跳转登录页。
 - 页面级登录校验：需要登录的页面在 `onShow` 中校验 Token，未登录时跳转登录页；公共跳转封装可通过 `uni.addInterceptor('navigateTo')` 统一处理。
-- 退出登录必须清理本地 Token、Pinia 登录态和持久化数据。
+- 退出登录必须调用后端 `POST /auth/logout`，成功后清理本地 Token、Pinia 登录态和持久化数据。
+- 请求层收到 HTTP 401 时必须清理本地 Token，避免继续使用失效 Token。
 - Token 本地存储 key 统一为 `uniapp_token`，不允许多处各起一个 key。
 
 ## 13. 样式规范

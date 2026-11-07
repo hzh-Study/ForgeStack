@@ -1,7 +1,9 @@
 package com.example.web.module.auth.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.example.web.common.result.Result;
 import com.example.web.module.auth.dto.LoginDTO;
+import com.example.web.module.auth.dto.PasswordResetCodeDTO;
 import com.example.web.module.auth.dto.PasswordResetDTO;
 import com.example.web.module.auth.dto.PasswordResetVerifyDTO;
 import com.example.web.module.auth.dto.RegisterDTO;
@@ -51,7 +53,30 @@ public class AuthController {
     }
 
     /**
-     * 使用账号、邮箱和角色校验找回密码身份。
+     * 退出当前登录态。
+     *
+     * @return 空结果
+     */
+    @PostMapping("/logout")
+    public Result<Void> logout() {
+        StpUtil.logout();
+        return Result.success();
+    }
+
+    /**
+     * 发送找回密码邮箱验证码。
+     *
+     * @param dto 验证码发送参数
+     * @return 空结果
+     */
+    @PostMapping("/password-reset/code")
+    public Result<Void> sendPasswordResetCode(@Valid @RequestBody PasswordResetCodeDTO dto) {
+        authService.sendPasswordResetCode(dto);
+        return Result.success();
+    }
+
+    /**
+     * 使用账号、邮箱、角色和验证码校验找回密码身份。
      *
      * @param dto 身份校验参数
      * @return 一次性重置凭证

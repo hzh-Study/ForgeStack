@@ -21,6 +21,15 @@ export function register(data) {
 }
 
 /**
+ * 退出登录。
+ *
+ * @returns {Promise} 退出结果
+ */
+export function logout() {
+  return request.post('/auth/logout')
+}
+
+/**
  * 获取前台当前用户信息。
  *
  * @returns {Promise} 当前用户信息

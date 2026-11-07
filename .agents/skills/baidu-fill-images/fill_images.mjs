@@ -21,29 +21,27 @@ const usedSourceUrls = new Set();
 
 function printHelp() {
   console.log(`
-百度图片补图工具：按提示词找图，上传到后端并输出系统 URL
+百度图片补图工具：按提示词找图，上传到 ForgeStack 后端并输出系统 URL
 
 示例:
-  node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "双肩包 商品图" --count 1 --api-base <backend-api-base> --admin-user <admin-user> --admin-password <admin-password>
-  node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "商城促销轮播图" --count 2 --upload-url <backend-api-base>/File/batchUpload --token <token>
-  node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "头像" --count 13 --api-base <backend-api-base> --token <token>
+  node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "双肩包 商品图" --count 1 --api-base http://127.0.0.1:7245 --admin-user admin --admin-password 123456789
+  node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "商城促销轮播图" --count 2 --upload-url http://127.0.0.1:7245/admin/files/upload --token <token>
+  node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "头像" --count 13 --api-base http://127.0.0.1:7245 --token <token>
 
 参数:
   --prompt           图片搜索提示词，必填
   --count            需要上传返回的图片数量，默认 1
   --api-base         后端 API 地址；也可通过 BACKEND_API_BASE 环境变量提供
-  --upload-url       上传接口地址，默认 {api-base}/File/batchUpload
+  --upload-url       上传接口地址，默认 {api-base}/admin/files/upload
   --token            上传接口 Authorization token
   --admin-user       管理员账号；提供后会先登录再上传
   --admin-password   管理员密码；提供后会先登录再上传
-  --role-type        登录角色类型，默认 1
 `);
 }
 
 function parseArgs(argv) {
   const args = {
     count: 1,
-    roleType: 1,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const item = argv[index];
@@ -71,7 +69,6 @@ function parseArgs(argv) {
     token: args.token,
     adminUser: args['admin-user'],
     adminPassword: args['admin-password'],
-    roleType: Number(args['role-type'] || args.roleType || 1),
     help: args.help,
   };
 }
@@ -342,18 +339,21 @@ function contentTypeFor(fileName) {
   return 'image/jpeg';
 }
 
-async function loginBackend(apiBase, userName, password, roleType = 1) {
-  const response = await fetch(`${apiBase.replace(/\/+$/, '')}/sysUser/signIn`, {
+async function loginBackend(apiBase, userName, password) {
+  const response = await fetch(`${apiBase.replace(/\/+$/, '')}/auth/login`, {
     method: 'POST',
     headers: { ...HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userName, passWord: password, roleType }),
+    body: JSON.stringify({ username: userName, password }),
     signal: AbortSignal.timeout(20000),
   });
-  const data = await response.json();
-  if (!data.success || !data.data) {
-    throw new Error(`登录失败: ${JSON.stringify(data)}`);
+  const result = await response.json();
+  if (!result.status || !result.data?.token) {
+    throw new Error(`登录失败: ${JSON.stringify(result)}`);
   }
-  return String(data.data);
+  if (result.data.clientType !== 'admin') {
+    throw new Error('登录失败：请使用管理员账号');
+  }
+  return String(result.data.token);
 }
 
 async function uploadFile(filePath, uploadUrl, token) {
@@ -361,9 +361,11 @@ async function uploadFile(filePath, uploadUrl, token) {
   const fileBytes = await fs.readFile(filePath);
   const formData = new FormData();
   formData.append('file', new Blob([fileBytes], { type: contentTypeFor(fileName) }), fileName);
+  formData.append('module', 'skill');
+  formData.append('fileType', 'image');
   const headers = {};
   if (token) {
-    headers.Authorization = token;
+    headers.Authorization = /^Bearer\s+/i.test(token) ? token : `Bearer ${token}`;
   }
   const response = await fetch(uploadUrl, {
     method: 'POST',
@@ -430,7 +432,7 @@ function resolveUploadUrl(args) {
   if (!apiBase) {
     throw new Error('请传入 --api-base 或 --upload-url，或设置 BACKEND_API_BASE 环境变量');
   }
-  return `${apiBase.replace(/\/+$/, '')}/File/batchUpload`;
+  return `${apiBase.replace(/\/+$/, '')}/admin/files/upload`;
 }
 
 async function resolveToken(args) {
@@ -441,7 +443,7 @@ async function resolveToken(args) {
       throw new Error('登录获取 token 时请传入 --api-base，或设置 BACKEND_API_BASE 环境变量');
     }
     console.log(`登录后端获取上传 token: ${apiBase}`);
-    return await loginBackend(apiBase, args.adminUser, args.adminPassword, args.roleType);
+    return await loginBackend(apiBase, args.adminUser, args.adminPassword);
   }
   return null;
 }

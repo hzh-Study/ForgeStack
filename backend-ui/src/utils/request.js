@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getToken } from './auth'
+import { getToken, removeToken } from './auth'
 
 const REQUEST_TIMEOUT = 10 * 60 * 1000
 
@@ -78,7 +78,15 @@ request.interceptors.request.use((config) => {
 
 request.interceptors.response.use(
   (response) => response.data,
-  (error) => Promise.reject(normalizeAxiosError(error))
+  (error) => {
+    if (error?.response?.status === 401) {
+      removeToken()
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login'
+      }
+    }
+    return Promise.reject(normalizeAxiosError(error))
+  }
 )
 
 export default request

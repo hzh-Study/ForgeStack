@@ -1,6 +1,7 @@
 package com.example.web.security;
 
 import cn.dev33.satoken.stp.StpInterface;
+import com.example.web.common.enums.EnableStatusEnum;
 import com.example.web.exception.BusinessException;
 import com.example.web.module.account.entity.Account;
 import com.example.web.module.account.enums.AccountRoleEnum;
@@ -50,6 +51,9 @@ public class PermissionService implements StpInterface {
         Account account = accountMapper.selectById(accountId);
         if (account == null) {
             throw new BusinessException("登录已失效");
+        }
+        if (account.getStatus() != EnableStatusEnum.ENABLED) {
+            throw new BusinessException("账号已禁用");
         }
         return account.getRole();
     }

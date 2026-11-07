@@ -5,6 +5,10 @@
     </div>
     <el-menu :default-active="route.path" router background-color="#ffffff" text-color="#475569"
       active-text-color="#2563eb" class="sidebar-menu border-r-0 !bg-white px-3 py-4">
+      <el-menu-item index="/dashboard">
+        <el-icon><Monitor /></el-icon>
+        <span>工作台</span>
+      </el-menu-item>
       <el-menu-item index="/system/admins">
         <el-icon><UserFilled /></el-icon>
         <span>管理员管理</span>

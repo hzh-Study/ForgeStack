@@ -35,6 +35,17 @@ public final class LoginAccountUtil {
     }
 
     /**
+     * 注销指定账号的全部登录态。
+     *
+     * @param accountId 账号表主键
+     */
+    public static void logout(Long accountId) {
+        if (accountId != null) {
+            StpUtil.logout(ACCOUNT_PREFIX + accountId);
+        }
+    }
+
+    /**
      * 从当前登录态解析统一账号 ID。
      *
      * @return 账号表主键

@@ -1,4 +1,4 @@
-import { getToken } from './auth'
+import { getToken, removeToken } from './auth'
 
 /**
  * 统一请求封装。
@@ -108,6 +108,9 @@ function request(options) {
             })
           }
           return
+        }
+        if (res.statusCode === 401) {
+          removeToken()
         }
         reject({
           code: res.statusCode,

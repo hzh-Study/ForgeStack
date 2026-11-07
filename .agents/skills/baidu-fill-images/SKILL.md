@@ -14,7 +14,7 @@ Use this skill when a project needs to fill or replace image fields. This skill 
 - Downloads candidate images to a temporary directory.
 - Checks downloaded image content hashes so different source URLs that point to the same image are not reused in one run.
 - Saves temporary upload filenames with ASCII-safe names such as `logo_xxxxxxxx.jpg`, avoiding Chinese characters in backend URLs.
-- Uploads each accepted image through the system backend upload API, usually `POST /File/batchUpload` with multipart field `file`.
+- Uploads each accepted image through the ForgeStack backend upload API: `POST /admin/files/upload` with multipart fields `file`, `module=skill`, and `fileType=image`.
 - Prints only the backend-returned system image URLs for callers to use in SQL seed data or normal business API requests.
 - Uses the Node.js script by default so projects do not need Python. Requires Node.js 18+ for built-in `fetch`, `FormData`, and `Blob`.
 - If Baidu blocks direct HTTP requests, falls back to a local Playwright browser search when the project has Playwright installed.
@@ -38,15 +38,9 @@ Use this skill when a project needs to fill or replace image fields. This skill 
 ## Commands
 
 ```bash
-node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "双肩包 商品图" --count 1 --api-base <backend-api-base> --admin-user <admin-user> --admin-password <admin-password>
-node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "商城促销轮播图" --count 2 --upload-url <backend-api-base>/File/batchUpload --token <token>
-node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "头像" --count 13 --api-base <backend-api-base> --token <token>
-```
-
-Python compatibility:
-
-```bash
-python .agents/skills/baidu-fill-images/fill_images.py --prompt "头像" --count 1 --api-base <backend-api-base> --token <token>
+node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "双肩包 商品图" --count 1 --api-base http://127.0.0.1:7245 --admin-user admin --admin-password 123456789
+node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "商城促销轮播图" --count 2 --upload-url http://127.0.0.1:7245/admin/files/upload --token <token>
+node .agents/skills/baidu-fill-images/fill_images.mjs --prompt "头像" --count 13 --api-base http://127.0.0.1:7245 --token <token>
 ```
 
 ## Arguments
@@ -56,16 +50,15 @@ python .agents/skills/baidu-fill-images/fill_images.py --prompt "头像" --count
 | `--prompt` | Required. The Baidu image search prompt. |
 | `--count` | Number of uploaded system URLs to return. |
 | `--api-base` | Backend API base URL. Required when `--upload-url` is not provided, unless `BACKEND_API_BASE` is set. |
-| `--upload-url` | Explicit upload API URL. Defaults to `{api-base}/File/batchUpload` when API base is available. |
-| `--token` | Existing backend authorization token. |
-| `--admin-user` | Admin account used to log in and obtain an upload token. |
-| `--admin-password` | Admin password used with `--admin-user`. |
-| `--role-type` | Login role type, default `1`. |
+| `--upload-url` | Explicit upload API URL. Defaults to `{api-base}/admin/files/upload` when API base is available. |
+| `--token` | Existing backend authorization token; `Bearer` prefix is optional. |
+| `--admin-user` | ForgeStack admin account used with `POST /auth/login`. |
+| `--admin-password` | ForgeStack admin password used with `--admin-user`. |
 
 ## Notes For Agents
 
 - This skill is not responsible for changing business data or SQL. It returns uploaded image URLs only.
-- Prefer `node .agents/skills/baidu-fill-images/fill_images.mjs`. Use the Python script only as a compatibility fallback.
+- Use `node .agents/skills/baidu-fill-images/fill_images.mjs`; this repository only maintains the Node.js script.
 - Do not automatically use the first Baidu result. Let the script build and shuffle a candidate pool, then use the returned uploaded system URLs directly. Do not ask the user to do image screening, and do not add an agent subjective inspection step before assignment.
 - Follow the current project's data rule after URLs are returned. If demo data belongs in SQL, write the selected system URL into the corresponding table's SQL record instead of creating a separate data script.
 - For user avatar fields, use `头像` as the primary prompt. Do not use the user's real name, account, phone, role, or unrelated business text to search avatar images.

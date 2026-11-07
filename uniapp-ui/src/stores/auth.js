@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getProfile, login as loginApi } from '@/api/auth'
+import { getProfile, login as loginApi, logout as logoutApi } from '@/api/auth'
 import { getToken, removeToken, setToken } from '@/utils/auth'
 import { normalizeUserProfile } from '@/models/user'
 
@@ -61,6 +61,7 @@ export const useAuthStore = defineStore('auth', {
      * 退出前台登录。
      */
     logout() {
+      logoutApi().catch(() => {})
       this.clearAuth()
     },
     /**

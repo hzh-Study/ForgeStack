@@ -89,6 +89,7 @@ public class AdminServiceImpl implements AdminService {
             throw new BusinessException("原密码错误");
         }
         updatePassword(account.getId(), dto.getNewPassword());
+        LoginAccountUtil.logout(account.getId());
     }
 
     /**
@@ -150,9 +151,14 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(rollbackFor = Exception.class)
     public void updateAdmin(AdminUpdateDTO dto) {
         Admin admin = getExistingAdmin(dto.getId());
+        EnableStatusEnum status = normalizeStatus(dto.getStatus());
+        ensureAdminCanBeDisabled(admin, status);
         getAdminAccount(admin.getAccountId());
-        updateAccountStatus(admin.getAccountId(), normalizeStatus(dto.getStatus()));
+        updateAccountStatus(admin.getAccountId(), status);
         updateAdminProfile(admin.getId(), dto.getRealName(), dto.getPhone(), dto.getEmail(), dto.getAvatar());
+        if (status == EnableStatusEnum.DISABLED) {
+            LoginAccountUtil.logout(admin.getAccountId());
+        }
     }
 
     /**
@@ -164,9 +170,11 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteAdmin(Long id) {
         Admin admin = getExistingAdmin(id);
+        ensureAdminCanBeDeleted(admin);
         getAdminAccount(admin.getAccountId());
         adminMapper.deleteById(id);
         accountMapper.deleteById(admin.getAccountId());
+        LoginAccountUtil.logout(admin.getAccountId());
     }
 
     /**
@@ -179,6 +187,48 @@ public class AdminServiceImpl implements AdminService {
         Admin admin = getExistingAdmin(dto.getId());
         getAdminAccount(admin.getAccountId());
         updatePassword(admin.getAccountId(), dto.getNewPassword());
+        LoginAccountUtil.logout(admin.getAccountId());
+    }
+
+    /**
+     * 校验管理员是否允许删除，禁止删除当前登录账号和最后一个管理员。
+     *
+     * @param admin 待删除管理员
+     */
+    private void ensureAdminCanBeDeleted(Admin admin) {
+        if (admin.getAccountId().equals(LoginAccountUtil.getCurrentAccountId())) {
+            throw new BusinessException("不能删除当前登录的管理员账号");
+        }
+        long adminCount = accountMapper.selectCount(new LambdaQueryWrapper<Account>()
+                .eq(Account::getRole, AccountRoleEnum.ADMIN));
+        if (adminCount <= 1) {
+            throw new BusinessException("至少保留一个管理员账号");
+        }
+    }
+
+    /**
+     * 校验管理员是否允许禁用，禁止禁用当前登录账号和最后一个启用的管理员。
+     *
+     * @param admin 待编辑管理员
+     * @param targetStatus 目标状态
+     */
+    private void ensureAdminCanBeDisabled(Admin admin, EnableStatusEnum targetStatus) {
+        if (targetStatus != EnableStatusEnum.DISABLED) {
+            return;
+        }
+        Account account = getAdminAccount(admin.getAccountId());
+        if (account.getStatus() != EnableStatusEnum.ENABLED) {
+            return;
+        }
+        if (admin.getAccountId().equals(LoginAccountUtil.getCurrentAccountId())) {
+            throw new BusinessException("不能禁用当前登录的管理员账号");
+        }
+        long enabledCount = accountMapper.selectCount(new LambdaQueryWrapper<Account>()
+                .eq(Account::getRole, AccountRoleEnum.ADMIN)
+                .eq(Account::getStatus, EnableStatusEnum.ENABLED));
+        if (enabledCount <= 1) {
+            throw new BusinessException("至少保留一个启用的管理员账号");
+        }
     }
 
     private Account createAccount(String username, EnableStatusEnum status) {

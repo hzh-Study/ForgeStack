@@ -15,6 +15,12 @@
         <el-form-item prop="email">
           <el-input v-model="identityForm.email" placeholder="邮箱" />
         </el-form-item>
+        <el-form-item prop="code">
+          <div class="flex w-full gap-2">
+            <el-input v-model="identityForm.code" placeholder="6位验证码" maxlength="6" />
+            <el-button :loading="codeSending" @click="handleSendCode">发送验证码</el-button>
+          </div>
+        </el-form-item>
         <el-button type="primary" class="w-full" :loading="loading" @click="handleVerify">
           验证账号
         </el-button>
@@ -44,16 +50,17 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { resetPassword, verifyPasswordReset } from '@/api/auth'
+import { resetPassword, sendPasswordResetCode, verifyPasswordReset } from '@/api/auth'
 import { showErrorMessage, showSuccessMessage } from '@/utils/message'
 
 const router = useRouter()
 const identityFormRef = ref()
 const passwordFormRef = ref()
 const loading = ref(false)
+const codeSending = ref(false)
 const step = ref(0)
 const resetToken = ref('')
-const identityForm = reactive({ username: '', email: '', role: 'ADMIN' })
+const identityForm = reactive({ username: '', email: '', role: 'ADMIN', code: '' })
 const passwordForm = reactive({ newPassword: '', confirmPassword: '' })
 
 /**
@@ -72,6 +79,10 @@ const identityRules = {
   email: [
     { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+  ],
+  code: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { pattern: /^\d{6}$/, message: '验证码必须为6位数字', trigger: 'blur' }
   ]
 }
 const passwordRules = {
@@ -86,7 +97,35 @@ const passwordRules = {
 }
 
 /**
- * 校验管理员账号与邮箱，保存后端签发的一次性重置凭证。
+ * 校验账号与邮箱格式后发送验证码，开发环境从后端日志读取验证码。
+ */
+async function handleSendCode() {
+  const valid = await identityFormRef.value.validateField(['username', 'email'])
+    .then(() => true)
+    .catch(() => false)
+  if (!valid) {
+    return
+  }
+  codeSending.value = true
+  try {
+    const result = await sendPasswordResetCode({
+      username: identityForm.username,
+      email: identityForm.email,
+      role: identityForm.role
+    })
+    if (result.status === false) {
+      throw result
+    }
+    showSuccessMessage('验证码已发送，请查看后端日志（开发环境）')
+  } catch (error) {
+    showErrorMessage(error)
+  } finally {
+    codeSending.value = false
+  }
+}
+
+/**
+ * 校验管理员账号、邮箱和验证码，保存后端签发的一次性重置凭证。
  */
 async function handleVerify() {
   await identityFormRef.value.validate()
@@ -130,6 +169,7 @@ async function handleReset() {
  */
 function resetVerification() {
   resetToken.value = ''
+  identityForm.code = ''
   passwordForm.newPassword = ''
   passwordForm.confirmPassword = ''
   step.value = 0

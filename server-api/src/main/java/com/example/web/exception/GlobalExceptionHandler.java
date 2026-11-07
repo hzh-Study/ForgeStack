@@ -5,6 +5,10 @@ import cn.dev33.satoken.exception.NotPermissionException;
 import com.example.web.common.result.Result;
 import jakarta.validation.ConstraintViolationException;
 import org.mybatis.spring.MyBatisSystemException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -18,6 +22,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     /**
      * 处理主动抛出的业务异常。
      *
@@ -25,8 +31,9 @@ public class GlobalExceptionHandler {
      * @return 统一失败结果
      */
     @ExceptionHandler(BusinessException.class)
-    public Result<Void> handleBusinessException(BusinessException exception) {
-        return Result.fail(exception.getMessage());
+    public ResponseEntity<Result<Void>> handleBusinessException(BusinessException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Result.fail(HttpStatus.BAD_REQUEST.value(), exception.getMessage()));
     }
 
     /**
@@ -36,23 +43,23 @@ public class GlobalExceptionHandler {
      * @return 统一失败结果
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Result<Void> handleMethodArgumentNotValidException(MethodArgumentNotValidException exception) {
-        return Result.fail(getFieldErrorMessage(exception.getBindingResult().getFieldError(), exception));
+    public ResponseEntity<Result<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException exception) {
+        return badRequest(getFieldErrorMessage(exception.getBindingResult().getFieldError(), exception));
     }
 
     @ExceptionHandler(BindException.class)
-    public Result<Void> handleBindException(BindException exception) {
-        return Result.fail(getFieldErrorMessage(exception.getBindingResult().getFieldError(), exception));
+    public ResponseEntity<Result<Void>> handleBindException(BindException exception) {
+        return badRequest(getFieldErrorMessage(exception.getBindingResult().getFieldError(), exception));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public Result<Void> handleConstraintViolationException(ConstraintViolationException exception) {
-        return Result.fail(getReadableMessage(exception));
+    public ResponseEntity<Result<Void>> handleConstraintViolationException(ConstraintViolationException exception) {
+        return badRequest(getReadableMessage(exception));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public Result<Void> handleValidateException(Exception exception) {
-        return Result.fail(getReadableMessage(exception));
+    public ResponseEntity<Result<Void>> handleValidateException(HttpMessageNotReadableException exception) {
+        return badRequest("请求参数格式不正确");
     }
 
     /**
@@ -62,8 +69,9 @@ public class GlobalExceptionHandler {
      * @return 统一失败结果
      */
     @ExceptionHandler(NotLoginException.class)
-    public Result<Void> handleNotLoginException(NotLoginException exception) {
-        return Result.fail("登录已失效，请重新登录");
+    public ResponseEntity<Result<Void>> handleNotLoginException(NotLoginException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Result.fail(HttpStatus.UNAUTHORIZED.value(), "登录已失效，请重新登录"));
     }
 
     /**
@@ -73,8 +81,9 @@ public class GlobalExceptionHandler {
      * @return 统一失败结果
      */
     @ExceptionHandler(NotPermissionException.class)
-    public Result<Void> handleNotPermissionException(NotPermissionException exception) {
-        return Result.fail("没有权限访问：" + exception.getPermission());
+    public ResponseEntity<Result<Void>> handleNotPermissionException(NotPermissionException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Result.fail(HttpStatus.FORBIDDEN.value(), "没有权限访问：" + exception.getPermission()));
     }
 
     /**
@@ -84,19 +93,28 @@ public class GlobalExceptionHandler {
      * @return 统一失败结果
      */
     @ExceptionHandler(MyBatisSystemException.class)
-    public Result<Void> handleMyBatisSystemException(MyBatisSystemException exception) {
-        return Result.fail(getMyBatisMessage(exception));
+    public ResponseEntity<Result<Void>> handleMyBatisSystemException(MyBatisSystemException exception) {
+        LOGGER.error("数据库访问异常", exception);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Result.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), getMyBatisMessage(exception)));
     }
 
     /**
-     * 处理未捕获异常，把异常摘要返回给前端，便于基础框架阶段定位问题。
+     * 处理未捕获异常，服务端记录完整异常，前端只返回通用提示。
      *
      * @param exception 未捕获异常
      * @return 统一失败结果
      */
     @ExceptionHandler(Exception.class)
-    public Result<Void> handleException(Exception exception) {
-        return Result.fail(getReadableMessage(exception));
+    public ResponseEntity<Result<Void>> handleException(Exception exception) {
+        LOGGER.error("服务端未捕获异常", exception);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Result.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "服务端异常，请查看后端日志"));
+    }
+
+    private ResponseEntity<Result<Void>> badRequest(String message) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Result.fail(HttpStatus.BAD_REQUEST.value(), message));
     }
 
     /**
@@ -114,7 +132,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 获取前端可展示的异常摘要，不返回后端堆栈。
+     * 获取前端可展示的校验异常摘要。
      *
      * @param exception 原始异常
      * @return 可读异常提示
@@ -122,9 +140,9 @@ public class GlobalExceptionHandler {
     private String getReadableMessage(Exception exception) {
         String message = exception.getMessage();
         if (message == null || message.isBlank()) {
-            return exception.getClass().getSimpleName();
+            return "请求参数不正确";
         }
-        return exception.getClass().getSimpleName() + ": " + message;
+        return message;
     }
 
     /**
@@ -138,7 +156,7 @@ public class GlobalExceptionHandler {
         if (message.contains("Failed to obtain JDBC")) {
             return "数据库没有连接上，请检查数据库账号和密码是否正确、数据库是否启动、数据库是否正常运行、数据库配置是否正确";
         }
-        return "MyBatisSystemException: " + message;
+        return "数据库访问异常，请查看后端日志";
     }
 
     /**

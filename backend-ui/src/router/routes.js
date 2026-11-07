@@ -16,9 +16,15 @@ export const routes = [
   {
     path: '/',
     component: AdminLayout,
-    redirect: '/system/admins',
+    redirect: '/dashboard',
     meta: { requiresAuth: true },
     children: [
+      {
+        path: 'dashboard',
+        name: 'Dashboard',
+        component: () => import('@/views/dashboard/DashboardView.vue'),
+        meta: { title: '工作台', requiresAuth: true }
+      },
       {
         path: 'system/admins',
         name: 'AdminList',

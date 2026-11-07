@@ -8,3 +8,9 @@ temp/
 .trae/documents/
 .screenshots/
 server-api/settings.xml
+
+# 本地上传文件不进入版本库，示例头像已在仓库中单独跟踪
+server-api/external-resources/
+
+# 本地运行产物
+server-api/.local/

@@ -30,7 +30,7 @@ export function setupPermission(router) {
     }
 
     if (to.path === '/login') {
-      return { path: '/system/admins' }
+      return { path: '/dashboard' }
     }
 
     return true

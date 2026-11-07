@@ -50,7 +50,11 @@ public class Result<T> {
     }
 
     public static <T> Result<T> fail(String message) {
-        return new Result<>(ResultCode.FAIL.getCode(), false, message, null);
+        return fail(ResultCode.FAIL.getCode(), message);
+    }
+
+    public static <T> Result<T> fail(Integer code, String message) {
+        return new Result<>(code, false, message, null);
     }
 
     public Integer getCode() {

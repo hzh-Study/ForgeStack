@@ -274,6 +274,16 @@ GET    /public/captcha
 }
 ```
 
+HTTP 状态码必须与业务结果一致，禁止所有响应统一返回 HTTP 200：
+
+| 场景 | HTTP 状态码 | Result.code |
+| --- | --- | --- |
+| 成功 | 200 | 200 |
+| 业务异常 / 参数校验失败 | 400 | 400 |
+| 未登录或 Token 失效 | 401 | 401 |
+| 已登录但无权限 | 403 | 403 |
+| 数据库或服务端未捕获异常 | 500 | 500 |
+
 分页返回建议：
 
 ```json
@@ -341,24 +351,27 @@ public Jackson2ObjectMapperBuilderCustomizer localDateTimeCustomizer() {
 sa-token:
   token-name: Authorization
   token-prefix: Bearer
-  jwt-secret-key: standard-architecture-jwt-secret-key-please-change-in-production
-  timeout: 604800
-  active-timeout: -1
+  timeout: ${SA_TOKEN_TIMEOUT:7200}
+  active-timeout: ${SA_TOKEN_ACTIVE_TIMEOUT:1800}
   is-concurrent: true
-  is-share: true
+  is-share: false
   is-read-body: false
   is-read-cookie: false
   is-read-header: true
 ```
 
-基础脚手架默认使用 Sa-Token JWT 无状态模式，避免 IDEA 或后端服务重启后内存登录态丢失导致前端旧 Token 立刻失效。生产环境必须替换 `jwt-secret-key`，不能直接使用脚手架默认值。
+JWT 密钥不允许写入仓库。必须优先读取 `JWT_SECRET` 环境变量；未配置时由后端生成随机密钥并保存到用户目录下的本地文件（例如 `~/.forgestack/jwt-secret`），生产环境必须显式配置环境变量。
+
+使用 Sa-Token JWT 简单模式，Token 本身仍是 JWT，同时保留服务端会话，因此退出登录、踢人下线和禁用账号可以立即生效：
 
 ```java
 @Bean
 public StpLogic getStpLogicJwt() {
-    return new StpLogicJwtForStateless();
+    return new StpLogicJwtForSimple();
 }
 ```
+
+退出登录必须调用 `POST /auth/logout` 并执行 `StpUtil.logout()`，前端在成功后清理本地 Token。权限加载时必须同时校验账号 `status`，不能只校验角色。
 
 `config/SaTokenConfig.java` 必须注册 Sa-Token 拦截器，并显式开启注解鉴权：
 
@@ -376,6 +389,8 @@ registry.addInterceptor(new SaInterceptor(handle -> {
 ```
 
 浏览器跨域预检请求 `OPTIONS` 必须在 Sa-Token 拦截器最前面放行，不能要求登录，否则前台和后台会出现 CORS 预检失败。
+
+CORS 不允许使用 `allowedOriginPatterns("*")` 与 `allowCredentials(true)` 的组合。默认只放行本机开发来源，例如 `http://localhost:*`、`http://127.0.0.1:*`；生产环境通过 `CORS_ALLOWED_ORIGIN_PATTERNS` 环境变量配置明确来源。
 
 权限码统一放在 `security/PermissionCode.java`。受保护的 Controller 方法必须使用 `@SaCheckPermission(PermissionCode.XXX)` 定义权限码。
 
@@ -443,6 +458,15 @@ Long accountId = LoginAccountUtil.getCurrentAccountId();
 - 公共接口不要返回敏感字段。
 - `/public/**` 和 `/files/**` 默认放行。
 
+### 11.5 找回密码与注销
+
+- 找回密码必须先发送邮箱验证码，验证码只能通过用户资料表中的邮箱接收；禁止仅凭“账号 + 邮箱”直接签发重置凭证。
+- 验证码必须设置有效期、发送冷却时间和最大错误次数，验证成功后立即失效。
+- 开发环境可以将验证码输出到后端日志；生产环境必须接入真实邮件发送服务。
+- 重置密码成功后必须注销该账号的全部登录态。
+- 修改密码、重置密码、禁用账号、删除账号后必须清理对应账号的登录态。
+- 退出登录必须提供 `POST /auth/logout`，前端成功提示后清理本地 Token 并跳转登录页。
+
 ## 12. 事务规范
 
 以下情况必须使用事务：
@@ -488,20 +512,18 @@ public Result<Void> create(@Valid @RequestBody DemoCreateDTO dto)
 throw new BusinessException("数据不存在");
 ```
 
-全局异常处理统一返回 `Result`，不允许直接把 Java 异常堆栈返回给前端。
-
-全局异常提示必须返回可读的具体异常信息，不能把所有未捕获异常统一吞成“系统异常”“参数错误”等泛化文案。
+全局异常处理统一返回 `Result`，并同步设置正确的 HTTP 状态码，不允许直接把 Java 异常堆栈返回给前端。
 
 强制要求：
 
-- `BusinessException` 返回业务异常自身 message。
-- `NotLoginException` 返回 `登录已失效，请重新登录`。
-- `NotPermissionException` 返回 `没有权限访问：{permission}`。
-- `MethodArgumentNotValidException`、`BindException` 等参数校验异常优先返回 DTO 校验注解中的中文提示，例如 `名称不能为空`。
-- `ConstraintViolationException`、`HttpMessageNotReadableException` 和其他未捕获异常必须返回可定位的异常摘要，例如 `HttpMessageNotReadableException: ...`。
-- `MyBatisSystemException` 必须单独处理；如果底层异常信息包含 `Failed to obtain JDBC`，需要返回明确数据库连接排查提示，例如 `数据库没有连接上，请检查数据库账号和密码是否正确、数据库是否启动、数据库是否正常运行、数据库配置是否正确`。
-- 不允许向前端返回完整堆栈、源码路径、数据库账号密码等敏感信息。
-- 基础框架阶段为了便于定位问题，未捕获异常不得只返回“系统异常”；后续生产环境如需隐藏内部异常，也必须通过配置区分环境，不能改成固定泛化文案。
+- `BusinessException` 返回 HTTP 400，并返回业务异常自身 message。
+- `NotLoginException` 返回 HTTP 401，message 为 `登录已失效，请重新登录`。
+- `NotPermissionException` 返回 HTTP 403，message 为 `没有权限访问：{permission}`。
+- `MethodArgumentNotValidException`、`BindException` 等参数校验异常返回 HTTP 400，优先返回 DTO 校验注解中的中文提示，例如 `名称不能为空`。
+- `ConstraintViolationException` 返回 HTTP 400；`HttpMessageNotReadableException` 返回 HTTP 400 和 `请求参数格式不正确`。
+- `MyBatisSystemException` 返回 HTTP 500；如果底层异常信息包含 `Failed to obtain JDBC`，返回明确的数据库连接排查提示，例如 `数据库没有连接上，请检查数据库账号和密码是否正确、数据库是否启动、数据库是否正常运行、数据库配置是否正确`。
+- 其他未捕获异常返回 HTTP 500 和通用提示 `服务端异常，请查看后端日志`，完整异常必须通过后端日志记录。
+- 不允许向前端返回完整堆栈、源码路径、SQL 语句、数据库账号密码等敏感信息。
 
 ## 15. Mapper 规范
 
@@ -659,15 +681,23 @@ external-resources/{module}/{fileType}/{yyyyMMdd}
 spring:
   servlet:
     multipart:
-      max-request-size: 10000MB
-      max-file-size: 10024MB
+      max-request-size: ${FILE_MAX_REQUEST_SIZE:20MB}
+      max-file-size: ${FILE_MAX_SIZE:10MB}
+
+app:
+  file:
+    upload-dir: external-resources
+    access-prefix: /files
+    max-size: ${FILE_MAX_SIZE_BYTES:10485760}
+    allowed-extensions: ${FILE_ALLOWED_EXTENSIONS:jpg,jpeg,png,gif,webp,bmp,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,txt}
 ```
 
-- 本地上传文件默认保存到项目运行目录下的 `external-resources/`。
+- 本地上传文件默认保存到项目运行目录下的 `external-resources/`，上传目录不得提交到版本库。
 - Web MVC 必须配置静态资源映射，例如把 `/files/**` 映射到 `file:external-resources/`，保证上传后返回的 URL 可以直接访问。
 - 上传接口只使用 `POST`。
-- 限制文件大小。
-- 限制文件格式。
+- 必须在 Service 层同时校验文件大小和扩展名，不能只依赖前端 `accept`。
+- 扩展名必须使用白名单，禁止上传 `html`、`htm`、`svg`、`js`、`mjs`、`jsp`、`php` 等可执行或可被浏览器解释为脚本的文件。
+- 前端页面即使只允许图片，后端也必须保留同样的白名单校验。
 - 上传接口返回相对 URL，例如 `/files/common/image/20260831/xxx.png`。
 - 业务表只保存上传接口返回的相对 URL 或文件标识，不保存域名、端口、Base64 大文本或本地绝对路径；前端封装按各端分层规范执行。
 - 不要把大文件直接存进数据库字段。

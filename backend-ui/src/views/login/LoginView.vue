@@ -33,8 +33,8 @@ const route = useRoute()
 const authStore = useAuthStore()
 const loading = ref(false)
 const form = reactive({
-  username: 'admin',
-  password: '123456789'
+  username: '',
+  password: ''
 })
 
 /**
@@ -45,7 +45,7 @@ async function handleLogin() {
   try {
     await authStore.login(form)
     showSuccessMessage('登录成功')
-    router.push(route.query.redirect || '/system/admins')
+    router.push(route.query.redirect || '/dashboard')
   } catch (error) {
     showErrorMessage(error)
   } finally {
