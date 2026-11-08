@@ -71,8 +71,9 @@ public class OrderReminderService {
 
     /**
      * 每分钟扫描待接单订单：到点写提醒并通知货主，到期自动下架并再次通知。
+     * 首次执行延迟到启动期核心表校验完成之后，避免错误数据库先刷业务异常。
      */
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(fixedDelay = 60000, initialDelay = 60000)
     public void scanOrders() {
         LocalDateTime now = clockService.now();
         List<Order> orders = orderMapper.selectList(new LambdaQueryWrapper<Order>()

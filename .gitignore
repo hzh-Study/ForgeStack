@@ -14,3 +14,9 @@ server-api/external-resources/
 
 # 本地运行产物
 server-api/.local/
+
+# 自检与临时诊断产物
+.selfcheck/
+*.cdp.mjs
+.diag-*
+server-api/target/test-uploads/

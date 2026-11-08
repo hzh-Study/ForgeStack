@@ -84,4 +84,24 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- MySQL 真实数据库冒烟检查：只在显式启用该 profile 时运行 MysqlSchemaSmokeCheck -->
+        <profile>
+            <id>mysql-check</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <include>**/MysqlSchemaSmokeCheck.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

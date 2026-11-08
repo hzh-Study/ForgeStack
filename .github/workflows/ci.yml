@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: |
+            backend-ui/package-lock.json
+            frontend-ui/package-lock.json
+            uniapp-ui/package-lock.json
+
+      - name: Backend tests
+        working-directory: server-api
+        run: |
+          chmod +x mvnw
+          ./mvnw test
+
+      - name: Conventions check
+        run: node scripts/check-conventions.mjs
+
+      - name: Install backend-ui dependencies
+        working-directory: backend-ui
+        run: npm ci
+
+      - name: Build backend-ui
+        working-directory: backend-ui
+        run: npm run build
+
+      - name: Install frontend-ui dependencies
+        working-directory: frontend-ui
+        run: npm ci
+
+      - name: Build frontend-ui
+        working-directory: frontend-ui
+        run: npm run build
+
+      - name: Install uniapp-ui dependencies
+        working-directory: uniapp-ui
+        run: npm ci
+
+      - name: Build uniapp-ui H5
+        working-directory: uniapp-ui
+        run: npm run build:h5
+
+      - name: Build uniapp-ui mp-weixin
+        working-directory: uniapp-ui
+        run: npm run build:mp-weixin
+
+  mysql-schema:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: '123456'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -p123456"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Create test database
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -p123456 \
+            -e "CREATE DATABASE forgestack_check_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+
+      - name: Run MySQL schema smoke check
+        working-directory: server-api
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_USERNAME: root
+          DB_PASSWORD: '123456'
+          MYSQL_CHECK_DB: forgestack_check_ci
+        run: |
+          chmod +x mvnw
+          ./mvnw -Pmysql-check test -Dtest=MysqlSchemaSmokeCheck

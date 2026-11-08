@@ -19,6 +19,8 @@
 - 代码注释：`.agents/代码工程规范/代码注释规范.md`
 - 终端命令：`.agents/代码工程规范/终端命令执行规范.md`
 - 数据库操作：`.agents/代码工程规范/MCP数据库操作通用规范.md`
+- 本地环境与验证命令：`docs/agents/dev-environment.md`
+- 评审前先读已知取舍：`docs/agents/known-tradeoffs.md`
 
 ## 客户端适配
 

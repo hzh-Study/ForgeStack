@@ -1,0 +1,48 @@
+server:
+  port: 0
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 数据库需由脚本预先创建为 utf8mb4，不使用 createDatabaseIfNotExist 自动建库
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${MYSQL_CHECK_DB:forgestack_check}?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: classpath:db/schema.sql
+      # 演示数据依赖种子数据中的 4 个基础账号，必须按 seed -> demo 顺序执行
+      data-locations: classpath:db/seed.sql,classpath:db/demo-data.sql
+  main:
+    allow-bean-definition-overriding: true
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  type-aliases-package: com.example.web.module.*.entity
+  configuration:
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+    map-underscore-to-camel-case: true
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 7200
+  active-timeout: 1800
+  is-concurrent: true
+  is-share: false
+  is-read-body: false
+  is-read-cookie: false
+  is-read-header: true
+
+app:
+  file:
+    upload-dir: target/mysql-test-uploads
+    access-prefix: /files
+    max-size: 10485760
+    allowed-extensions: jpg,jpeg,png,gif,webp,bmp,pdf
+
+logging:
+  level:
+    root: WARN
