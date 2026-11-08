@@ -13,6 +13,13 @@
         <el-button type="primary" class="w-full" :loading="loading" @click="handleLogin">
           登录
         </el-button>
+        <div v-if="debugAutofill" class="mt-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <div class="mb-1">调试模式已自动填充货主账号，直接点击登录即可</div>
+          <div class="flex gap-2">
+            <el-button v-for="item in debugAccounts" :key="item.username" link type="primary"
+              @click="fillDebugAccount(item)">{{ item.label }}</el-button>
+          </div>
+        </div>
         <div class="mt-5 flex items-center justify-between text-sm">
           <router-link to="/sign-up" class="text-blue-600 hover:text-blue-700">注册账号</router-link>
           <router-link to="/forgot-password" class="text-slate-500 hover:text-slate-700">找回密码</router-link>
@@ -33,10 +40,29 @@ const route = useRoute()
 const authStore = useAuthStore()
 const loading = ref(false)
 const formRef = ref()
+/**
+ * 调试模式下自动填充货主演示账号，并提供货主/物流/司机快速切换。
+ */
+const debugAutofill = import.meta.env.VITE_DEBUG_AUTOFILL === 'true'
+const debugAccounts = [
+  { label: '货主', username: '13900000011', password: '123456' },
+  { label: '物流', username: '13900000021', password: '123456' },
+  { label: '司机', username: '13900000023', password: '123456' }
+]
 const form = reactive({
-  username: '',
-  password: ''
+  username: debugAutofill ? '13900000011' : '',
+  password: debugAutofill ? '123456' : ''
 })
+
+/**
+ * 调试模式快速切换演示账号。
+ *
+ * @param {Object} account 演示账号信息
+ */
+function fillDebugAccount(account) {
+  form.username = account.username
+  form.password = account.password
+}
 const rules = {
   username: [
     { required: true, message: '请输入手机号', trigger: 'blur' },

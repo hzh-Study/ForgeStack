@@ -14,6 +14,9 @@
         <el-button type="primary" class="w-full" :loading="loading" @click="handleLogin">
           登录
         </el-button>
+        <div v-if="debugAutofill" class="mt-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          调试模式已自动填充管理员账号，直接点击登录即可
+        </div>
         <div class="mt-5 text-right text-sm">
           <router-link to="/forgot-password" class="text-slate-500 hover:text-slate-700">找回密码</router-link>
         </div>
@@ -33,9 +36,13 @@ const route = useRoute()
 const authStore = useAuthStore()
 const loading = ref(false)
 const formRef = ref()
+/**
+ * 调试模式下自动填充管理员演示账号，生产构建不会加载该变量。
+ */
+const debugAutofill = import.meta.env.VITE_DEBUG_AUTOFILL === 'true'
 const form = reactive({
-  username: '',
-  password: ''
+  username: debugAutofill ? '13800000000' : '',
+  password: debugAutofill ? 'admin123' : ''
 })
 
 const rules = {

@@ -32,6 +32,7 @@
       <button class="login__submit" type="primary" :loading="loading" @click="handleLogin">
         登 录
       </button>
+      <text v-if="debugAutofill" class="login__debug">调试模式已自动填充司机账号，直接点击登录即可</text>
       <text class="login__tip">仅限物流公司创建的司机账号登录，其他角色请使用对应端登录</text>
     </view>
   </view>
@@ -45,11 +46,12 @@ import { isPhone, isValidPassword } from '@/utils/validate'
 const authStore = useAuthStore()
 
 /**
- * 登录表单，username 为手机号。
+ * 登录表单，username 为手机号。调试模式下自动填充司机演示账号。
  */
+const debugAutofill = import.meta.env.VITE_DEBUG_AUTOFILL === 'true'
 const form = reactive({
-  username: '',
-  password: ''
+  username: debugAutofill ? '13900000023' : '',
+  password: debugAutofill ? '123456' : ''
 })
 
 const loading = ref(false)
@@ -144,6 +146,18 @@ async function handleLogin() {
   &__submit {
     margin-top: 40rpx;
     font-size: 32rpx;
+  }
+
+  &__debug {
+    display: block;
+    margin-top: 24rpx;
+    padding: 12rpx 20rpx;
+    font-size: 24rpx;
+    line-height: 1.6;
+    color: $app-color-primary;
+    background-color: $app-bg-color;
+    border-radius: $app-border-radius-base;
+    text-align: center;
   }
 
   &__tip {
