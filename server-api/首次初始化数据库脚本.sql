@@ -290,7 +290,7 @@ CREATE TABLE IF NOT EXISTS biz_checkin_photo (
   checkin_id BIGINT NOT NULL,
   task_id BIGINT NOT NULL,
   photo_purpose VARCHAR(20) NOT NULL,
-  file_path VARCHAR(300) NOT NULL,
+  file_path VARCHAR(240) NOT NULL,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
 );
@@ -458,7 +458,7 @@ CREATE UNIQUE INDEX uk_sys_platform_param ON sys_platform_param (param_key);
 
 CREATE TABLE IF NOT EXISTS sys_file (
   id BIGINT NOT NULL AUTO_INCREMENT,
-  file_path VARCHAR(300) NOT NULL,
+  file_path VARCHAR(240) NOT NULL,
   original_name VARCHAR(200) NULL,
   uploader_account_id BIGINT NOT NULL,
   file_module VARCHAR(40) NULL,
@@ -469,6 +469,8 @@ CREATE TABLE IF NOT EXISTS sys_file (
 CREATE UNIQUE INDEX uk_sys_file_path ON sys_file (file_path);
 CREATE INDEX idx_sys_file_uploader ON sys_file (uploader_account_id);
 
+
+SET NAMES utf8mb4;
 
 -- 开发与验收演示种子数据
 -- 账号：管理员 13800000000 / admin123；货主 13900000001 / 123456；物流公司 13900000002 / 123456；司机 13900000003 / 123456

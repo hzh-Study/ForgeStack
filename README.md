@@ -17,6 +17,8 @@
 
 ## 快速开始
 
+本地环境、端口、演示账号与验证命令见 `docs/agents/dev-environment.md`。
+
 ### 0. 环境要求
 
 - JDK 17 及以上。
@@ -26,9 +28,10 @@
 
 ### 1. 初始化数据库
 
-MySQL 中创建数据库 `base`（utf8mb4），执行 `server-api/首次初始化数据库脚本.sql`：
+MySQL 中创建数据库 `forgestack`（utf8mb4），执行 `server-api/首次初始化数据库脚本.sql`：
 
-- 内置演示账号：`admin`（管理员）、`user`（用户），初始密码均为 `123456789`；首次部署后请立即修改。
+- 内置演示账号：管理员 `13800000000 / admin123`、货主 `13900000001 / 123456`、物流公司 `13900000002 / 123456`、司机 `13900000003 / 123456`；首次部署后请立即修改。
+- 可选：执行 `server-api/src/main/resources/db/demo-data.sql` 写入订单池、运单任务、打卡、报销、消息与待审核入驻等演示数据；该脚本为一次性写入，请勿在已有演示数据的库上重复执行。
 - 忘记初始密码时，可按 `PasswordUtil` 的摘要规则 `SHA-256(密码:盐)` 生成新摘要更新 `sys_account` 表，或通过找回密码流程重置。
 
 ### 2. 启动后端
@@ -44,7 +47,7 @@ cd server-api
 
 | 变量 | 说明 |
 |------|------|
-| `DB_HOST` / `DB_PORT` / `DB_NAME` | 数据库地址、端口、库名（`localhost` / `3306` / `base`） |
+| `DB_HOST` / `DB_PORT` / `DB_NAME` | 数据库地址、端口、库名（`localhost` / `3306` / `forgestack`） |
 | `DB_USERNAME` / `DB_PASSWORD` | 数据库账号密码（`root` / `123456`） |
 | `JWT_SECRET` | JWT 密钥；未设置时自动生成并保存到 `~/.forgestack/jwt-secret`，生产环境必须显式设置 |
 | `SA_TOKEN_TIMEOUT` | Token 有效期秒数（`7200`，即 2 小时） |
@@ -105,7 +108,7 @@ npm run build:mp-weixin   # 发行构建，产物 dist/build/mp-weixin
 - `.mcp.json`：面向 Codex 之外 AI 客户端的数据库 MCP 配置。
 - `.codex/config.toml`：Codex 客户端的数据库 MCP 配置。
 
-两者默认连接本机 MySQL（`root/123456@127.0.0.1:3306/base`），与 `application.yml` 保持一致；请务必改为自己的连接信息后再使用。
+两者默认连接本机 MySQL（`root/123456@127.0.0.1:3306/forgestack`），与 `application.yml` 保持一致；请务必改为自己的连接信息后再使用。
 
 ## License
 

@@ -154,31 +154,46 @@ public class FileAccessService {
         List<CheckinPhoto> checkinPhotos = checkinPhotoMapper.selectList(new LambdaQueryWrapper<CheckinPhoto>()
                 .eq(CheckinPhoto::getFilePath, storedFile.getFilePath()));
         if (!checkinPhotos.isEmpty()) {
-            Task task = taskMapper.selectById(checkinPhotos.get(0).getTaskId());
-            if (task == null) {
-                return false;
+            for (CheckinPhoto checkinPhoto : checkinPhotos) {
+                Task task = taskMapper.selectById(checkinPhoto.getTaskId());
+                if (task == null) {
+                    continue;
+                }
+                if (account.getId().equals(task.getDriverAccountId())
+                        || account.getId().equals(task.getLogisticsAccountId())) {
+                    return true;
+                }
+                Order order = orderMapper.selectById(task.getOrderId());
+                if (order != null && account.getId().equals(order.getShipperAccountId())) {
+                    return true;
+                }
             }
-            if (account.getId().equals(task.getDriverAccountId())
-                    || account.getId().equals(task.getLogisticsAccountId())) {
-                return true;
-            }
-            Order order = orderMapper.selectById(task.getOrderId());
-            return order != null && account.getId().equals(order.getShipperAccountId());
+            return false;
         }
 
         List<ReimbursementPhoto> reimbursementPhotos = reimbursementPhotoMapper.selectList(
                 new LambdaQueryWrapper<ReimbursementPhoto>().eq(ReimbursementPhoto::getFilePath, storedFile.getFilePath()));
         if (!reimbursementPhotos.isEmpty()) {
-            Reimbursement reimbursement = reimbursementMapper.selectById(reimbursementPhotos.get(0).getReimbursementId());
-            return reimbursement != null && (account.getId().equals(reimbursement.getDriverAccountId())
-                    || account.getId().equals(reimbursement.getLogisticsAccountId()));
+            for (ReimbursementPhoto reimbursementPhoto : reimbursementPhotos) {
+                Reimbursement reimbursement = reimbursementMapper.selectById(reimbursementPhoto.getReimbursementId());
+                if (reimbursement != null && (account.getId().equals(reimbursement.getDriverAccountId())
+                        || account.getId().equals(reimbursement.getLogisticsAccountId()))) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         List<OnboardingFile> onboardingFiles = onboardingFileMapper.selectList(new LambdaQueryWrapper<OnboardingFile>()
                 .eq(OnboardingFile::getFilePath, storedFile.getFilePath()));
         if (!onboardingFiles.isEmpty()) {
-            Onboarding onboarding = onboardingMapper.selectById(onboardingFiles.get(0).getOnboardingId());
-            return onboarding != null && account.getId().equals(onboarding.getAccountId());
+            for (OnboardingFile onboardingFile : onboardingFiles) {
+                Onboarding onboarding = onboardingMapper.selectById(onboardingFile.getOnboardingId());
+                if (onboarding != null && account.getId().equals(onboarding.getAccountId())) {
+                    return true;
+                }
+            }
+            return false;
         }
         return false;
     }

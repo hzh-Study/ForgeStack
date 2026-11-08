@@ -286,7 +286,7 @@ CREATE TABLE IF NOT EXISTS biz_checkin_photo (
   checkin_id BIGINT NOT NULL,
   task_id BIGINT NOT NULL,
   photo_purpose VARCHAR(20) NOT NULL,
-  file_path VARCHAR(300) NOT NULL,
+  file_path VARCHAR(240) NOT NULL,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
 );
@@ -454,7 +454,7 @@ CREATE UNIQUE INDEX uk_sys_platform_param ON sys_platform_param (param_key);
 
 CREATE TABLE IF NOT EXISTS sys_file (
   id BIGINT NOT NULL AUTO_INCREMENT,
-  file_path VARCHAR(300) NOT NULL,
+  file_path VARCHAR(240) NOT NULL,
   original_name VARCHAR(200) NULL,
   uploader_account_id BIGINT NOT NULL,
   file_module VARCHAR(40) NULL,

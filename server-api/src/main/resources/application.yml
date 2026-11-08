@@ -3,13 +3,17 @@ spring:
     name: web-backend
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:base}?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:forgestack}?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
   servlet:
     multipart:
       max-request-size: ${FILE_MAX_REQUEST_SIZE:20MB}
       max-file-size: ${FILE_MAX_SIZE:10MB}
+  sql:
+    init:
+      # 数据库初始化脚本为 UTF-8，避免 Windows 默认 GBK 读取导致中文乱码
+      encoding: UTF-8
 
 server:
   port: ${SERVER_PORT:7245}
